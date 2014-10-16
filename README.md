@@ -1,4 +1,0 @@
-decorator
-=========
-
-Python decorator library
