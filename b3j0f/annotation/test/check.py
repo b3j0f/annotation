@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import unittest
+from unittest import main
 
+from b3j0f.utils.ut import UTCase
 from b3j0f.annotation.interception import Interceptor
-from b3j0f.annotation.check import Condition, Checker, MaxCount, Target
+from b3j0f.annotation.check import Condition, MaxCount, Target
 
 
-class CheckTests(unittest.TestCase):
+class CheckTests(UTCase):
 
     def setUp(self):
         pass
@@ -21,7 +22,7 @@ class CheckTests(unittest.TestCase):
         def a(a):
             return a
 
-        self.assertTrue(a(a=2) == 4)
+        self.assertEqual(a(a=2), 4)
 
     def testPostCondition(self):
 
@@ -36,27 +37,6 @@ class CheckTests(unittest.TestCase):
         self._assertCall(a, 0)
         a(1)
 
-    def testChecker(self):
-
-        @Checker(lambda decorator_type, target: type(target) == type)
-        class A(object):
-            pass
-
-        e = None
-
-        @A()
-        class B(object):
-            pass
-
-        try:
-            @A()
-            def c():
-                pass
-        except Exception as e:
-            pass
-
-        self.assertTrue(e is not None)
-
     def testMaxCount(self):
 
         e = None
@@ -69,7 +49,7 @@ class CheckTests(unittest.TestCase):
         except Exception as e:
             pass
 
-        self.assertTrue(e is not None)
+        self.assertIsNotNone(e)
 
         e = None
 
@@ -85,7 +65,7 @@ class CheckTests(unittest.TestCase):
         except Exception as e:
             pass
 
-        self.assertTrue(e is not None)
+        self.assertIsNotNone(e)
 
         e = None
 
@@ -107,7 +87,7 @@ class CheckTests(unittest.TestCase):
         except Exception as e:
             pass
 
-        self.assertTrue(e is not None)
+        self.assertIsNotNone(e)
 
     def testTarget(self):
 
@@ -124,7 +104,7 @@ class CheckTests(unittest.TestCase):
         except Exception as e:
             pass
 
-        self.assertTrue(e is not None)
+        self.assertIsNotNone(e)
 
         e = None
 
@@ -147,7 +127,7 @@ class CheckTests(unittest.TestCase):
         except Exception as e:
             pass
 
-        self.assertTrue(e is not None)
+        self.assertIsNotNone(e)
 
         e = None
 
@@ -162,7 +142,7 @@ class CheckTests(unittest.TestCase):
         except Exception as e:
             pass
 
-        self.assertTrue(e is not None)
+        self.assertIsNotNone(e)
 
         e = None
 
@@ -185,7 +165,7 @@ class CheckTests(unittest.TestCase):
         except Exception as e:
             pass
 
-        self.assertTrue(e is not None)
+        self.assertIsNotNone(e)
 
         @Target([MaxCount, str], rule=Target.OR)
         class D(Interceptor):
@@ -202,7 +182,8 @@ class CheckTests(unittest.TestCase):
         except Exception as e:
             pass
 
-        self.assertTrue(e is not None)
+        self.assertIsNotNone(e)
+
 
 if __name__ == '__main__':
-    unittest.main()
+    main()

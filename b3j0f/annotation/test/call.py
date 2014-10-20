@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import unittest
+from unittest import main
 
+from b3j0f.utils.ut import UTCase
 from b3j0f.annotation.interception import Interceptor
-from b3j0f.annotation.check import Condition
 from b3j0f.annotation.call import Types, Curried, Retries
 
 
-class CallTests(unittest.TestCase):
+class CallTests(UTCase):
 
     def setUp(self):
         pass
@@ -22,7 +22,7 @@ class CallTests(unittest.TestCase):
         except Exception as e:
             pass
 
-        self.assertTrue(e is not None)
+        self.assertIsNotNone(e)
 
     def testTypes(self):
 
@@ -183,13 +183,13 @@ class CallTests(unittest.TestCase):
 
         self.assertTrue(isinstance(result, Curried.CurriedResult))
 
-        self.assertTrue(a(None) is None)
+        self.assertIsNone(a(None))
 
         result.decorator.args = []
 
-        self.assertTrue(a(b=None) is None)
+        self.assertIsNone(a(b=None))
 
-        self.assertTrue(a(b=None, c=None) is None)
+        self.assertIsNone(a(b=None, c=None))
 
         self.assertTrue(isinstance(a(None), Curried.CurriedResult))
 
@@ -214,5 +214,6 @@ class CallTests(unittest.TestCase):
         self.assertTrue(count == 0)
         self.assertTrue(result == "")
 
+
 if __name__ == '__main__':
-    unittest.main()
+    main()

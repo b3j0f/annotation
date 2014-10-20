@@ -1,288 +1,157 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import unittest
+from unittest import main
 
-from b3j0f.annotation.interception \
-    import Interceptor, InterceptorWithoutParameters, NewInterceptor
+from b3j0f.utils.ut import UTCase
+from b3j0f.annotation.interception import Interceptor, CallInterceptor
 
 
-class InterceptionTests(unittest.TestCase):
+class InterceptorTest(UTCase):
+    """
+    Base class for other tests
+    """
 
     def setUp(self):
+
+        self.count = 0
+
+        self.interceptor = Interceptor(
+            interception=self.interception,
+            pointcut='__call__')
+
+        self.interceptor(self)
+
+    def interception(self, interceptor, advicesexecutor):
+
+        self.count += 1
+
+        return advicesexecutor.execute()
+
+    def tearDown(self):
+        """
+        Delete self.interceptor
+        """
+
+        del self.interceptor
+
+    def __call__(self):
+        """
+        Simulate a call for intercepts itself with annotation
+        """
+
         pass
 
-    @Interceptor()
-    def testInterceptor(self):
 
-        Interceptors = Interceptor.get_annotations(
-            target=InterceptionTests.testInterceptor)
-        self.assertEquals(len(Interceptors), 1)
+class InterceptionTest(InterceptorTest):
+    """
+    Test interception
+    """
 
-        @Interceptor()
-        class SubInterceptor(Interceptor):
-            """
-            Test Interceptor
-            """
-            pass
-
-        self.assertTrue(issubclass(SubInterceptor, Interceptor))
-
-        Interceptors = Interceptor.get_annotations(
-            target=InterceptionTests.testInterceptor)
-        self.assertEquals(len(Interceptors), 1)
-
-        self.assertTrue(isinstance(Interceptors[0], Interceptor))
-        self.assertTrue(issubclass(type(Interceptors[0]), Interceptor))
-
-        @SubInterceptor()
-        @Interceptor()
-        def a():
-            pass
-
-        Interceptors = Interceptor.get_annotations(target=a)
-        self.assertEquals(len(Interceptors), 2)
-
-        Interceptors = SubInterceptor.get_annotations(target=a)
-        self.assertEquals(len(Interceptors), 1)
-
-        Interceptors = Interceptor.get_annotations(
-            target=a,
-            inherited=False)
-        self.assertEquals(len(Interceptors), 1)
-
-        @Interceptor()
-        @SubInterceptor()
-        class A(object):
-            """
-            Test Interceptor
-            """
-            pass
-
-        self.assertTrue(issubclass(A, object))
-
-        Interceptors = Interceptor.get_annotations(target=A)
-        self.assertEquals(len(Interceptors), 2)
-
-        Interceptors = SubInterceptor.get_annotations(target=A)
-        self.assertEquals(len(Interceptors), 1)
-
-        Interceptors = Interceptor.get_annotations(
-            target=A,
-            inherited=False)
-        self.assertEquals(len(Interceptors), 1)
-
+    def test_one_one(self):
         """
-        To do those tests, Interceptor needs to implement the __new__ method
-        instead of the __init__ method.
-        The result depends on the target. If target is None,
-        the result is the Interceptor instance, else it's the wrapper.
+        Test one annotation and one call
         """
-        @Interceptor()
-        @Interceptor()
-        @SubInterceptor()
-        def b():
-            pass
 
-        Interceptors = Interceptor.get_annotations(target=b)
-        self.assertEquals(len(Interceptors), 3)
+        self()
 
-        Interceptors = Interceptor.get_annotations(target=b)
-        self.assertEquals(len(Interceptors), 3)
+        self.assertEqual(self.count, 1)
 
-        Interceptors = SubInterceptor.get_annotations(target=b)
-        self.assertEquals(len(Interceptors), 1)
-
-        Interceptors = Interceptor.get_annotations(
-            target=b,
-            inherited=False)
-        self.assertEquals(len(Interceptors), 2)
-
-    @InterceptorWithoutParameters
-    def testInterceptorWithoutParameters(self):
-
-        Interceptors = Interceptor.get_annotations(
-            target=InterceptionTests.testInterceptor)
-        self.assertEquals(len(Interceptors), 1)
-
-        @InterceptorWithoutParameters
-        class SubInterceptor(InterceptorWithoutParameters):
-            """
-            Test Interceptor
-            """
-
-            pass
-
-        self.assertTrue(issubclass(SubInterceptor, Interceptor))
-
-        Interceptors = Interceptor.get_annotations(
-            target=InterceptionTests.testInterceptor)
-        self.assertEquals(len(Interceptors), 1)
-
-        self.assertTrue(isinstance(Interceptors[0], Interceptor))
-        self.assertTrue(issubclass(type(Interceptors[0]), Interceptor))
-
-        @SubInterceptor
-        @InterceptorWithoutParameters
-        def _a():
-            pass
-
-        interceptors = Interceptor.get_annotations(target=_a)
-        self.assertEquals(len(interceptors), 2)
-
-        interceptors = SubInterceptor.get_annotations(
-            target=_a)
-        self.assertEquals(len(interceptors), 1)
-
-        interceptors = InterceptorWithoutParameters.get_annotations(
-            target=_a,
-            inherited=False)
-        self.assertEquals(len(interceptors), 1)
-
-        @InterceptorWithoutParameters
-        @SubInterceptor
-        class A(object):
-            """
-            Test Interceptor
-            """
-
-            pass
-
-        self.assertTrue(issubclass(A, object))
-
-        Interceptors = Interceptor.get_annotations(target=A)
-        self.assertEquals(len(Interceptors), 2)
-
-        Interceptors = SubInterceptor.get_annotations(target=A)
-        self.assertEquals(len(Interceptors), 1)
-
-        Interceptors = InterceptorWithoutParameters.get_annotations(
-            target=A,
-            inherited=False)
-        self.assertEquals(len(Interceptors), 1)
-
+    def test_one_two(self):
         """
-        To do those tests, Interceptor needs to implement
-        the __new__ method instead of the __init__ method.
-        The result depends on the target. If target is None,
-        the result is the Interceptor instance, else it's the wrapper.
+        Test one annotation and two calls
         """
-        @InterceptorWithoutParameters
-        @InterceptorWithoutParameters
-        @SubInterceptor
-        def b():
-            pass
+        self()
+        self()
 
-        Interceptors = Interceptor.get_annotations(target=b)
-        self.assertEquals(len(Interceptors), 3)
+        self.assertEqual(self.count, 2)
 
-        Interceptors = Interceptor.get_annotations(target=b)
-        self.assertEquals(len(Interceptors), 3)
+    def test_two_one(self):
+        """
+        Test two annotation and one call
+        """
 
-        Interceptors = SubInterceptor.get_annotations(target=b)
-        self.assertEquals(len(Interceptors), 1)
+        self.interceptor(self)
 
-        Interceptors = InterceptorWithoutParameters.get_annotations(
-            target=b,
-            inherited=False)
-        self.assertEquals(len(Interceptors), 2)
+        self()
 
-    checked = False
+        self.assertEqual(self.count, 2)
 
-    def assertChecked(self):
-        self.assertTrue(InterceptionTests.checked)
-        InterceptionTests.checked = False
+    def test_two_two(self):
+        """
+        Test two annotations and two calls
+        """
 
-    def testNewInterceptor(self):
+        self.interceptor(self)
 
-        @NewInterceptor()
-        class A(object):
-            def _intercepts(self, target, args, kwargs):
-                InterceptionTests.checked = True
+        self()
+        self()
 
-        @A()
-        def g():
-            pass
+        self.assertEqual(self.count, 4)
 
-        g()
 
-        self.assertChecked()
+class EnableTest(InterceptorTest):
+    """
+    Test enable
+    """
 
-        @NewInterceptor()
-        class B(object):
-            def __init__(self, a, b=None):
-                super(Interceptor, self).__init__()
+    def test_enable(self):
 
-            def on_bind_target(self, target):
-                InterceptionTests.checked = True
+        self.interceptor = True
 
-        e = None
+        self()
 
-        try:
-            @B()
-            def i():
-                pass
-        except Exception as e:
-            pass
+        self.assertEqual(self.count, 1)
 
-        self.assertTrue(e is not None)
+    def test_disable(self):
 
-        @B(a=1)
-        def j():
-            pass
+        self.interceptor = False
 
-        self.assertChecked()
+        self()
 
-        j()
+        self.assertEqual(self.count, 0)
 
-        e = None
+    def test_enables(self):
 
-        try:
-            @B(a=1, c=2)
-            def k():
-                pass
-        except Exception as e:
-            pass
+        Interceptor.enable(self, enable=True)
 
-        self.assertTrue(e is not None)
+        self()
 
-    def testInheritance(self):
+        self.assertEqual(self.count, 1)
 
-        class A(Interceptor):
-            def __init__(self, a, b=None):
-                super(A, self).__init__()
+    def test_disables(self):
 
-            def _intercepts(self, target, args, kwargs):
-                InterceptionTests.checked = True
+        Interceptor.enable(self, enable=False)
 
-        e = None
+        self()
 
-        try:
-            @A()
-            def a():
-                pass
-        except Exception as e:
-            pass
+        self.assertEqual(self.count, 0)
 
-        self.assertTrue(e is not None)
-        e = None
 
-        try:
-            @A(b=1)
-            def b():
-                pass
-        except Exception as e:
-            pass
+class CallInterceptorTest(InterceptorTest):
+    """
+    Test CallInterceptor
+    """
 
-        self.assertTrue(e is not None)
+    def setUp(self):
 
-        @A(a=None)
-        def c():
-            pass
+        super(CallInterceptorTest, self).setUp()
 
-        c()
+        del self.interceptor
 
-        self.assertChecked()
+        self.interceptor = CallInterceptor(interception=self.interception)
+
+        self.interceptor(self)
+
+    def test(self):
+        """
+        Test interception of self
+        """
+
+        self()
+
+        self.assertEqual(self.count, 1)
+
 
 if __name__ == '__main__':
-    unittest.main()
+    main()

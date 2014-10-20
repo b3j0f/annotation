@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import unittest
+from unittest import main
 
+from b3j0f.utils.ut import UTCase
 from b3j0f.annotation.oop import MixIn, MethodMixIn, Deprecated, Singleton
 
 
-class OOPTests(unittest.TestCase):
+class OOPTests(UTCase):
 
     def setUp(self):
         pass
@@ -33,7 +34,7 @@ class OOPTests(unittest.TestCase):
 
         self.assertEqual(len(mixedins_by_name), 3)
         self.assertEqual(A.a, 2)
-        self.assertEqual(A.plop, None)
+        self.assertIsNone(A.plop)
 
         MixIn.remove_mixin(A, 'plop')
 
@@ -47,7 +48,7 @@ class OOPTests(unittest.TestCase):
 
         self.assertEqual(len(mixedins_by_name), 0)
         self.assertFalse(hasattr(A, 'a'))
-        self.assertTrue(plop == A.plop)
+        self.assertEqual(plop, A.plop)
 
     def testClassMixIn(self):
 
@@ -78,12 +79,12 @@ class OOPTests(unittest.TestCase):
         mixedInstance = MixedInClass()
 
         self.assertEqual(mixedInstance.a, None)
-        self.assertTrue(mixedInstance.get_3() == a)
-        self.assertTrue(mixedInstance.get_1() is 1)
+        self.assertEqual(mixedInstance.get_3(), a)
+        self.assertIs(mixedInstance.get_1(), 1)
 
         MixIn.remove_all_mixins(MixedInClass)
-        self.assertTrue(mixedInstance.get_3() == 3)
-        self.assertTrue(mixedInstance.get_1() is '1')
+        self.assertEqual(mixedInstance.get_3(), 3)
+        self.assertIs(mixedInstance.get_1(), '1')
 
         MixIn(ClassForMixIn, lambda: None, get_3=get_3, a=a)(MixedInClass)
 
@@ -91,9 +92,9 @@ class OOPTests(unittest.TestCase):
         self.assertTrue(hasattr(MixedInClass, 'a'))
         self.assertTrue(hasattr(MixedInClass, '<lambda>'))
 
-        self.assertEqual(mixedInstance.a, None)
-        self.assertTrue(mixedInstance.get_3() == a)
-        self.assertTrue(mixedInstance.get_1() is 1)
+        self.assertIsNone(mixedInstance.a)
+        self.assertEqual(mixedInstance.get_3(), a)
+        self.assertIs(mixedInstance.get_1(), 1)
 
     def testMethodMixIn(self):
 
@@ -110,7 +111,7 @@ class OOPTests(unittest.TestCase):
 
         mixedInstance = MixedInClass()
 
-        self.assertEqual(mixedInstance.get_1(), None)
+        self.assertIsNone(mixedInstance.get_1())
 
         class MixedInClass(object):
 
@@ -153,5 +154,6 @@ class OOPTests(unittest.TestCase):
 
         self.assertEqual(A.get_a(), A().get_a())
 
+
 if __name__ == '__main__':
-    unittest.main()
+    main()

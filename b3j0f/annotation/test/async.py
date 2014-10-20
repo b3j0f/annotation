@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from b3j0f.annotation.async \
-    import Synchronized, Asynchronous, TimeOut, Wait
+from unittest import main
 
-import unittest
+from b3j0f.utils.ut import UTCase
+from b3j0f.annotation.async import Synchronized, Asynchronous, TimeOut, Wait
 
 
-class ThreadingTests(unittest.TestCase):
+class ThreadingTests(UTCase):
 
     def setUp(self):
         pass
@@ -28,5 +28,6 @@ class ThreadingTests(unittest.TestCase):
         Wait
         pass
 
+
 if __name__ == '__main__':
-    unittest.main()
+    main()

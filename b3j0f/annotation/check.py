@@ -2,8 +2,8 @@
 Interceptors dedicated to decorate decorations.
 """
 
-from b3j0f.annotation.interception import Interceptor
-from b3j0f.annotation.interception import NewInterceptor
+from b3j0f.annotation.interception import Interceptor, CallInterceptor
+from b3j0f.utils.property import setdefault, get_local_property, del_properties
 
 from types import FunctionType
 
@@ -13,240 +13,130 @@ class Condition(Interceptor):
     Apply a pre/post condition on an annotated element call.
     """
 
+    #: attribute name for pre condition
+    PRE_CONDITION = 'pre_condition'
+
+    #: attribute name for post condition
+    POST_CONDITION = 'post_condition'
+
+    __slots__ = (PRE_CONDITION, POST_CONDITION) + Interceptor.__slots__
+
     class ConditionError(Exception):
-
-        def __init__(self, condition, target, **params):
-            message = "Error of {0} on {1} with parameters {2}"\
-                .format(condition, target, params)
-            super(Condition.ConditionError, self).__init__(message)
-
-    def __init__(self, pre=None, post=None):
-
-        self._super(Condition).__init__()
-        self.pre = pre
-        self.post = post
-
-    def _pre_intercepts(self, target, args, kwargs):
-
-        if self.pre is not None and not self.pre(target, args, kwargs):
-            raise Condition.ConditionError(
-                self, "pre-condition", target, args=args, kwargs=kwargs)
-
-    def _post_intercepts(self, target, args, kwargs, result):
-
-        if self.post is not None \
-                and not self.post(target, result, args, kwargs):
-            raise Condition.ConditionError(
-                self, "post-condition", target, args=args, kwargs=kwargs,
-                result=result)
-
-
-class Checked(Interceptor):
-    """
-    Interceptor which is able to call external checkers \
-    when this._call is called.
-    """
-
-    __CHECKERS_KEY__ = '__checkers__'
-
-    @classmethod
-    def enable_checking(cls, enable=None):
         """
-        Enable self checking. If enable is not None, \
-        change self state of enable_checkers.
+        Handle condition errors
         """
-
-        result = False
-
-        if not hasattr(cls, '_enable_checking'):
-            cls._enable_checking = True
-
-        if enable is not None:
-            cls._enable_checking = enable
-
-        result = cls._enable_checking
-
-        return result
-
-    @classmethod
-    def get_checkers(cls):
-        """
-        Return self checkers set.
-        """
-
-        result = getattr(cls, Checked.__CHECKERS_KEY__, set())
-
-        return result
-
-    def _callCheckers(self, target):
-        """
-        Call all self checkers only if self enable_checkers is True
-        """
-
-        self_type = type(self)
-
-        if self_type.enable_checking():
-            checkers = self_type.get_checkers()
-            for checker in checkers:
-                checker.check(self, target)
-
-
-class Checker(NewInterceptor):
-    """
-    Check dynamically the definition of all decorated element decorated by \
-    this decorated Interceptor with an input function \'checking\'.
-    \'Checking\' function takes in parameters the decorated Interceptor\
-    instance and the decorated element definition.
-    """
-
-    class CheckerError(Exception):
         pass
 
-    __CHECK_TYPE_PER_TARGET = {}
-
-    def __init__(self, checker):
-
-        self._super(Checker).__init__()
-        self.checker = checker
-
-    def _bind_target(self, target):
+    class PreConditionError(ConditionError):
         """
-        Add self to wrapper checkers.
+        Handle pre condition errors
         """
+        pass
 
-        result = self._super(Checker)._bind_target(target)
-        result.get_checkers().add(self)
-
-        return result
-
-    def check(self, interceptor, target):
+    class PostConditionError(ConditionError):
         """
-        Call self checker method with input interceptor and target.
-        If the checker method returns False, then throw a CheckerError.
+        Handle post condition errors
         """
 
-        if not self.checker(interceptor, target):
-            raise Checker.CheckerError(
-                'checking function {0} on {1} does not check {2}'.format(
-                    (self.checker, Interceptor, target)))
+        pass
 
-    def _get_bases(self, target):
+    def __init__(
+        self, pre_condition=None, post_condition=None, *args, **kwargs
+    ):
         """
-        Add Checked to wrapper base classes.
-        """
-
-        result = (target, Checked)
-
-        return result
-
-    def _get_dict(self, target):
-        """
-        Add _callCheckers in wrapper _on_bind_target method.
+        :param pre_condition: function called before target call. Parameters
+            are self annotation and AdvicesExecutor.
+        :param post_condition: function called after target call. Parameters
+            are self annotation, call result and AdvicesExecutor.
         """
 
-        def _on_bind_target(self, target):
+        super(Condition, self).__init__(*args, **kwargs)
 
-            _type = type(self)
-            self._super(_type)._on_bind_target(target)
-            self._callCheckers(target)
+        self.pre_condition = pre_condition
+        self.post_condition = post_condition
 
-            return target
+    def interception(self, annotation, advicesexecutor):
+        """
+        Intercept call of advicesexecutor callee in doing pre/post conditions
+        """
 
-        result = self._super(Checker)._get_dict(target)
-        result['_on_bind_target'] = _on_bind_target
+        if self.pre_condition is not None:
+            self.pre_condition(self, advicesexecutor)
+
+        result = advicesexecutor.execute()
+
+        if self.post_condition is not None:
+            self.post_condition(self, result, advicesexecutor)
 
         return result
 
 
-class ContextChecker(Checker):
-    """
-    Checker which manages a value in the context of a decorated Interceptor,
-    a target and self.
-    """
+class ContextChecker(CallInterceptor):
 
-    __ENTRY_PER_TARGET_PER_Interceptor_TYPE = {}
+    __slots__ = CallInterceptor.__slots__
 
-    def __init__(self):
+    __CONTEXT_KEY__ = '__context_checker__'
 
-        self._super(ContextChecker).__init__(self._check)
-
-    def _check(self, nterceptor, target):
-
-        return True
-
-    def _get_entry(self, interceptor, target):
+    def __del__(self):
         """
-        Return an entry in the context of self type,
-        Interceptor type and target.
+        Free context memory.
         """
 
-        _type = type(self)
-        _type = Interceptor.get_source_target(_type)
+        super(ContextChecker, self).__del__()
 
-        interceptor_type = Interceptor.get_source_target(type(interceptor))
+        # get context key and self class
+        context_key = ContextChecker.__CONTEXT_KEY__
+        self_class = self.__class__
 
-        entry_per_target = \
-            ContextChecker.__ENTRY_PER_TARGET_PER_Interceptor_TYPE.get(
-                interceptor_type, None)
+        # for all targets
+        for target in self.targets:
 
-        _target = Interceptor.get_source_target(target)
+            # get contexts
+            contexts = get_local_property(target, context_key)
 
-        if not entry_per_target:
-            result = self._get_default_entry(interceptor, target)
+            # if not empty
+            if self_class in contexts:
 
-            entry_per_target = {_target: result}
-            ContextChecker.__ENTRY_PER_TARGET_PER_Interceptor_TYPE[
-                interceptor_type] = entry_per_target
+                # get context
+                context = contexts[self_class]
 
-        result = entry_per_target.get(_target, None)
+                # free context if empty
+                if not context:
+                    del contexts[self_class]
 
-        if not result:
-            result = self._get_default_entry(interceptor_type, target)
-            entry_per_target[_target] = result
+            # if contexts are empty, free them
+            if not contexts:
+                del_properties(target, context_key)
+
+    def interception(self, annotation, advicesexecutor):
+
+        # get target, context_key and context
+        target = advicesexecutor.callee
+        context_key = ContextChecker.__CONTEXT_KEY__
+        context = setdefault(target, context_key, {})
+
+        # get self_class and context value
+        self_class = self.__class__
+        value = context.setdefault(self_class, {})
+
+        # check self on annotation, target and context value
+        self._check(annotation, target, value)
+
+        # run the advices executor
+        result = advicesexecutor.execute()
 
         return result
 
-    def _get_default_entry(self, interceptor, target):
+    def _check(self, annotation, target, value):
         """
-        Return context entry point.
-        """
+        Update a context value during annotation binding.
 
-        _type = type(self)
-        _type = Interceptor.get_source_target(_type)
-        default_value = self._get_default_value(interceptor, target)
-        result = {_type: default_value}
-
-        return result
-
-    def _get_value(self, interceptor, target):
-        """
-        Method to use by sub Interceptors in order to get context value.
+        :param Annotation annotation: annotation in binding to target
+        :param target: element during annotation
+        :param dict value: value to update
         """
 
-        entry = self._get_entry(interceptor, target)
-        _type = type(self)
-        _type = Interceptor.get_source_target(_type)
-
-        result = entry[_type]
-        return result
-
-    def _update_value(self, interceptor, target, value):
-        """
-        Update a value in the context of Interceptor, target and self.
-        """
-
-        entry = self._get_entry(interceptor, target)
-        _type = type(self)
-        _type = Interceptor.get_source_target(_type)
-
-        entry[_type] = value
-
-    def _get_default_value(self, Interceptor, target):
-        """
-        Method to override by sub Interceptors.
-        """
-
-        return None
+        raise NotImplementedError()
 
 
 class MaxCount(ContextChecker):
@@ -257,52 +147,30 @@ class MaxCount(ContextChecker):
     class MaxCountError(Exception):
         pass
 
-    __MAX_COUNT_KEY__ = 'MAX_COUNT'
+    __COUNT_KEY__ = 'count'
 
-    __COUNT_KEY__ = 'COUNT'
+    __slots__ = (__COUNT_KEY__, ) + ContextChecker.__slots__
 
-    __COUNT_PER_TARGET = {}
+    def __init__(self, count=1, *args, **kwargs):
+        """
+        Count of annotation/object call
+        """
 
-    def __init__(self, count=1):
+        super(MaxCount, self).__init__(*args, **kwargs)
 
-        self._super(MaxCount).__init__()
         self.count = count
 
-    def _check(self, interceptor, target):
+    def _check(self, annotation, target, value):
 
-        value = self._get_value(interceptor, target)
-        count = value[MaxCount.__COUNT_KEY__]
+        count = value.setdefault(MaxCount.__COUNT_KEY__, self.count - 1)
 
-        if count == 0:
-            raise MaxCount.MaxCountError(
-                "Too many instances of {0} decorate {1}, at most {2} accepted".
-                format(
-                    (
-                        interceptor,
-                        target,
-                        value[MaxCount.__MAX_COUNT_KEY__])))
-
-        else:
-            value[MaxCount.__COUNT_KEY__] = count - 1
-
-        return True
-
-    def _get_default_value(self, interceptor, target):
-
-        result = {
-            MaxCount.__COUNT_KEY__: self.count,
-            MaxCount.__MAX_COUNT_KEY__: self.count}
-
-        return result
-
-MaxCount = MaxCount(1)(MaxCount)
+        if count < 0:
+            raise MaxCount.MaxCountError()
 
 
-@MaxCount(1)
 class Target(ContextChecker):
     """
-    Check type of all decorated element decorated
-    by this decorated Interceptor.
+    Check type of all decorated element decorated by this decorated Annotation.
     """
 
     class TargetError(Exception):
@@ -316,14 +184,16 @@ class Target(ContextChecker):
     __TYPES__ = 'types'
     __RULE__ = 'rule'
 
-    def __init__(self, types, rule=OR):
+    def __init__(self, types, rule=OR, *args, **kwargs):
 
-        self._super(Target).__init__()
+        super(Target, self).__init__(*args, **kwargs)
+
         self.types = types if isinstance(types, list) else [types]
         self.rule = rule
 
-    def _check(self, interceptor, target):
-        _target = Interceptor.get_source_target(target)
+    def interception(self, annotation, target):
+
+        super(Target, self).interception(annotation, target)
 
         raiseException = self.rule == Target.OR
 
@@ -331,7 +201,7 @@ class Target(ContextChecker):
             _type = Interceptor.get_source_target(_type)
 
             if ((_type == type or _type == FunctionType) and isinstance(
-                    _target, _type)) or issubclass(_target, _type):
+                    target, _type)) or issubclass(target, _type):
                 if self.rule == Target.OR:
                     raiseException = False
                     break
@@ -341,19 +211,19 @@ class Target(ContextChecker):
                 break
 
         if raiseException:
-            Interceptor_type = type(interceptor)
+            Interceptor_type = type(annotation)
             Interceptor_type = Interceptor.get_source_target(Interceptor_type)
 
             raise Target.TargetError(
                 "{0} is not allowed by {1}. Must be {2} {3}".format(
-                    _target,
+                    target,
                     Interceptor_type,
                     'among' if self.rule == Target.OR else 'all',
                     self.types))
 
         return True
 
-    def _get_default_value(self, interceptor, target):
+    def _check(self, interceptor, target):
 
         result = {Target.__TYPES__: self.types, Target.__RULE__: self.rule}
 

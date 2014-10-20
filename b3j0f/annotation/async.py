@@ -9,12 +9,14 @@ try:
 except ImportError as IE:
     from dummythreading import Thread, RLock
 
+from time import sleep
+
 from Queue import Queue
 
 from signal import signal, SIGALRM, alarm
 
 from b3j0f.annotation.interception import Interceptor
-from b3j0f.annotation.core import Annotation
+from b3j0f.annotation import Annotation
 from b3j0f.annotation.oop import MixIn
 
 
@@ -160,8 +162,6 @@ class TimeOut(Interceptor):
             signal.alarm(0)
 
         return result
-
-from time import sleep
 
 
 class Wait(Interceptor):

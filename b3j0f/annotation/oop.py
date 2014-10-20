@@ -4,7 +4,7 @@
 Annotations dedicated to object oriented programming.
 """
 
-from b3j0f.annotation.core import Annotation
+from b3j0f.annotation import Annotation
 from b3j0f.annotation.interception import Interceptor
 
 from types import MethodType, UnboundMethodType

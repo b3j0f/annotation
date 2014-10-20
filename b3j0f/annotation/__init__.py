@@ -1,3 +1,510 @@
 # -*- coding: utf-8 -*-
 
+"""
+This module defines the Annotation class.
+
+Such Annotation is close to the reflective paradigm in having himself its own
+    lifecycle independently from its annotated elements (called commonly
+        target).
+
+Such Annotation:
+
+- can annotate any reflective object, from classes to class instances.
+- have their own business behaviour.
+- are reusable to annotate several objects.
+- can propagate their annotation capability to class inheritance tree.
+
+.. limitations:
+    It is impossible to annotate None methods or not immutable types such as
+    dict or list.
+"""
+
 __version__ = "0.1.0"
+
+__all__ = ('Annotation', 'StopPropagation')
+
+from b3j0f.utils.property import (
+    put_properties, del_properties, get_local_property, get_property
+)
+
+from time import time
+
+try:
+    from threading import Timer
+except ImportError:
+    from dummy_threading import Timer
+
+
+class Annotation(object):
+    """
+    Base class for all annotations defined in this library.
+    It contains functions to override in order to catch initialisation
+    of this Annotation and annotated elements binding
+    (also called commonly target in the context of Annotation).
+
+    All annotations which inherit from this are registered to target objects
+    and are accessibles through the static method Annotation.get_annotations.
+
+    Instance methods to override are:
+    - __init__: set parameters during its instantiation.
+    - _bind_target: called to bind target to this.
+    - on_bind_target: fired when the annotated element is bound to this.
+
+    And properties are:
+    - propagate: (default True) determines if an annotation is propagated to
+        all sub target elements.
+    - override: (default False) exclude previous annotation of the same type as
+        self class.
+    - lifetime: (default None) self life time.
+    - in_memory: (default False) save instance in a global dictionary.
+
+    It is also possible to set on_bind_target, propagate and override in
+        the constructor.
+    """
+
+    #: attribute name for accessing to target annotations from a target
+    __ANNOTATIONS_KEY__ = '__ANNOTATIONS__'
+
+    #: attribute name for target binding notifying
+    _ON_BIND_TARGET = '_on_bind_target'
+
+    #: atribute name for target
+    TARGETS = 'targets'
+
+    #: attribute name for annotation propagatation on sub targets.
+    PROPAGATE = 'propagate'
+
+    #: attribute name for overriding base annotations.
+    OVERRIDE = 'override'
+
+    #: attribute name for annotation ttl
+    LIFETIME = 'lifetime'
+
+    #: attribute name for in_memory
+    IN_MEMORY = 'in_memory'
+
+    #: attribute name for self ts
+    __TS = '_ts'
+
+    #: attribute name for self timer
+    __TIMER = '_timer'
+
+    __slots__ = (
+        _ON_BIND_TARGET, __TS, __TIMER,  # private attributes
+        TARGETS, PROPAGATE, OVERRIDE, LIFETIME, IN_MEMORY  # public attributes
+    )
+
+    # global dictionary of annotations in memory
+    __ANNOTATIONS_IN_MEMORY = {}
+
+    def __init__(
+        self,
+        on_bind_target=None, propagate=True, override=False, lifetime=None,
+        in_memory=False
+    ):
+        """
+        Default constructor with an 'on_bind_target' handler and propagate
+        scope property.
+
+        :param on_bind_target: (None) function to call when the annotation is
+            bound to an object. Function parameters are self and target.
+        :param bool propagate: (True) propagate self to sub targets.
+        :param bool override: (False) override old defined annotations of the
+            same type.
+        :param float lifetime: (None) self lifetime in seconds.
+        :param bool in_memory: (False) save self in a global memory.
+        """
+
+        super(Annotation, self).__init__()
+
+        # set on_bind_target handler
+        setattr(self, Annotation._ON_BIND_TARGET, on_bind_target)
+
+        # set attributes
+        setattr(self, Annotation.PROPAGATE, propagate)
+        setattr(self, Annotation.OVERRIDE, override)
+        setattr(self, Annotation.LIFETIME, lifetime)
+        setattr(self, Annotation.IN_MEMORY, in_memory)
+
+        self.targets = set()
+
+    def __call__(self, target):
+        """
+        Shouldn't be overriden by sub classes.
+        """
+
+        # bind target to self
+        result = self.bind_target(target)
+
+        return result
+
+    def __del__(self):
+        """
+        Remove self to self.target annotations
+        """
+
+        # nonify self lifetime
+        setattr(self, Annotation.LIFETIME, None)
+
+        # for all target
+        for target in tuple(self.targets):
+            # remove self from target
+            self.remove_from(target)
+
+    @property
+    def lifetime(self):
+        """
+        Get actual lifetime in seconds
+
+        :return: actual lifetime
+        :rtype: float
+        """
+
+        # result is self ts
+        result = getattr(self, Annotation.__TS, None)
+        # if result is not None
+        if result is not None:
+            # result is now - result
+            now = time()
+            result = result - now
+
+        return result
+
+    @lifetime.setter
+    def lifetime(self, value):
+        """
+        Change self lifetime with input value
+
+        :param float value: new lifetime in seconds
+        """
+
+        # get timer
+        timer = getattr(self, Annotation.__TIMER, None)
+        # if timer is running, stop the timer
+        if timer is not None:
+            timer.cancel()
+        # initialize timestamp
+        ts = None
+
+        # if value is None
+        if value is None:
+            # nonify timer
+            timer = None
+
+        else:  # else, renew a timer
+            # get ts
+            ts = time() + value
+            # start a new timer
+            timer = Timer(value, self.__del__)
+            timer.start()
+            # set/update attributes
+
+        setattr(self, Annotation.__TIMER, timer)
+        setattr(self, Annotation.__TS, ts)
+
+    @property
+    def in_memory(self):
+        """
+        :return: True if self is in a global memory of annotations.
+        """
+
+        self_class = self.__class__
+        # check if self class is in global memory
+        memory = Annotation.__ANNOTATIONS_IN_MEMORY.get(self_class, ())
+        # check if self is in memory
+        result = self in memory
+
+        return result
+
+    @in_memory.setter
+    def in_memory(self, value):
+        """
+        Add or remove self from global memory.
+
+        :param bool value: if True(False) ensure self is(is not) in memory
+        """
+
+        self_class = self.__class__
+        memory = Annotation.__ANNOTATIONS_IN_MEMORY
+        if value:
+            annotations_memory = memory.setdefault(self_class, set())
+            annotations_memory.add(self)
+        else:
+            if self_class in memory:
+                annotations_memory = memory[self_class]
+                if self in annotations_memory:
+                    annotations_memory.remove(self)
+
+    @classmethod
+    def get_memory_annotations(annotation_type, exclude=None):
+        """
+        Get annotations in memory which inherits from self
+
+        :param tuple/type exclude: annotation type(s) to exclude from search
+        :return: found annotations by types
+        :rtype: dict
+        """
+
+        result = {}
+
+        # get global dictionary
+        annotations_in_memory = Annotation.__ANNOTATIONS_IN_MEMORY
+
+        # iterate on annotation classes
+        for annotation_cls in annotations_in_memory:
+
+            # if annotation class is excluded, continue
+            if issubclass(annotation_cls, exclude):
+                continue
+
+            # if annotation class inherits from self, add it in the result
+            if issubclass(annotation_cls, annotation_type):
+                result[annotation_cls] = annotations_in_memory[annotation_cls]
+
+        return result
+
+    def bind_target(self, target):
+        """
+        Bind self annotation to target.
+
+        :param target: target to annotate
+        :return: bound target
+        """
+
+        # process self _bind_target
+        result = self._bind_target(target)
+
+        # fire on bind target event
+        self.on_bind_target(target)
+
+        return result
+
+    def _bind_target(self, target):
+        """
+        Method to override in order to specialize binding of target
+
+        :param target: target to bind
+        :return: bound target
+        """
+
+        result = target
+
+        try:
+            # get annotations from target if exists.
+            local_annotations = get_local_property(
+                target, Annotation.__ANNOTATIONS_KEY__, [])
+        except TypeError:
+            raise TypeError('target {0} must be hashable.'.format(target))
+
+        # if local_annotations do not exist, put them in target
+        if not local_annotations:
+            put_properties(
+                target, **{Annotation.__ANNOTATIONS_KEY__: local_annotations})
+
+        # insert self at first position
+        local_annotations.insert(0, self)
+
+        # add target to self targets
+        self.targets.add(target)
+
+        return result
+
+    def on_bind_target(self, target):
+        """
+        Fired after target is bound to self.
+
+        :param target: newly bound target
+        """
+
+        _on_bind_target = getattr(self, Annotation._ON_BIND_TARGET, None)
+
+        if _on_bind_target is not None:
+            _on_bind_target(self, target)
+
+    def remove_from(self, target):
+        """
+        Remove self annotation from target annotations
+
+        :param target: target from where remove self annotation
+        """
+
+        annotations_key = Annotation.__ANNOTATIONS_KEY__
+
+        try:
+            # get local annotations
+            local_annotations = get_local_property(target, annotations_key)
+        except TypeError:
+            raise TypeError('target {0} must be hashable'.format(target))
+
+        # if local annotations exist
+        if local_annotations is not None:
+            # if target in self.targets
+            if target in self.targets:
+                # remove target from self.targets
+                self.targets.remove(target)
+                # and remove all self annotations from local_annotations
+                while self in local_annotations:
+                    local_annotations.remove(self)
+                # if target is not annotated anymore, remove the empty list
+                if not local_annotations:
+                    del_properties(target, annotations_key)
+
+    @classmethod
+    def get_local_annotations(annotation_type, target, exclude=None):
+        """
+        Get a list of local target annotations in the order of their
+            definition.
+        :param type annotation_type: type of annotation to get from target.
+        :param target: target from where get annotations.
+        :param tuple/type exclude: annotation types to exclude from selection.
+
+        :return: target local annotations
+        :rtype: list
+        """
+
+        result = []
+
+        # initialize exclude
+        exclude = () if exclude is None else exclude
+
+        try:
+            # get local annotations
+            local_annotations = get_local_property(
+                target, Annotation.__ANNOTATIONS_KEY__, result)
+        except TypeError:
+            raise TypeError('target {0} must be hashable'.format(target))
+
+        for local_annotation in local_annotations:
+            # check if local annotation inherits from annotation_type
+            inherited = isinstance(local_annotation, annotation_type)
+            # and if not excluded
+            not_excluded = not isinstance(local_annotation, exclude)
+
+            # if both conditions, add local annotation to the result
+            if inherited and not_excluded:
+                result.append(local_annotation)
+
+        return result
+
+    @classmethod
+    def remove(annotation_type, target, exclude=None):
+        """
+        Remove from target annotations which inherit from annotation_type
+
+        :param target: target from where remove annotations which inherits from
+            annotation_type.
+        :param tuple/type exclude: annotation types to exclude from selection.
+        """
+
+        # initialize exclude
+        exclude = () if exclude is None else exclude
+
+        try:
+            # get local annotations
+            local_annotations = get_local_property(
+                target, Annotation.__ANNOTATIONS_KEY__)
+        except TypeError:
+            raise TypeError('target {0} must be hashable'.format(target))
+
+        # if there are local annotations
+        if local_annotations is not None:
+
+            # get annotations to remove which inherits from annotation_type
+            annotations_to_remove = [
+                annotation for annotation in local_annotations
+                if isinstance(annotation, annotation_type)
+                    and not isinstance(annotation, exclude)
+            ]
+
+            # and remove annotations from target
+            for annotation_to_remove in annotations_to_remove:
+                annotation_to_remove.remove_from(target)
+
+    @classmethod
+    def get_annotations(annotation_type, target, exclude=None):
+        """
+        Returns all input target annotations of annotation_type type sorted by
+        definition order.
+
+        :param type annotation_type: type of annotation to get from target.
+        :param target: target from where get annotations.
+        :param tuple/type exclude: annotation types to remove from selection.
+        """
+
+        result = []
+
+        try:
+            property_elts = get_property(
+                target, Annotation.__ANNOTATIONS_KEY__)
+        except TypeError:
+            raise TypeError('target {0} must be hashable'.format(target))
+
+        exclude = () if exclude is None else exclude
+
+        for elt in property_elts:
+
+            annotations = property_elts[elt]
+
+            for annotation in annotations:
+
+                # check if annotation is a StopPropagation rule
+                if isinstance(annotation, StopPropagation):
+                    exclude += annotation.annotation_types
+
+                # ensure propagation
+                if elt is not target and not annotation.propagate:
+                    continue
+
+                # ensure overriding
+                if annotation.override:
+                    exclude += (annotation.__class__, )
+
+                # check for annotation type
+                if isinstance(annotation, annotation_type) \
+                        and not isinstance(annotation, exclude):
+
+                    result.append(annotation)
+
+        return result
+
+    @classmethod
+    def get_annotated_fields(annotation_type, instance):
+        """
+        Get arrays of (annotated fields, annotations) by annotation_type of
+            input instance.
+
+        :return: a set of (annotated fields, annotations)
+        :rtype: dict
+        """
+
+        result = {}
+
+        field_names = dir(instance)
+
+        for field_name in field_names:
+            field = getattr(instance, field_name)
+            try:
+                annotations = annotation_type.get_annotations(field)
+            except TypeError:
+                continue
+            if annotations:
+                result[field] = annotations
+
+        return result
+
+
+class StopPropagation(Annotation):
+    """
+    Stop propagation for annotation types.
+    """
+
+    ANNOTATION_TYPES = 'annotation_types'
+
+    __slots__ = (ANNOTATION_TYPES,) + Annotation.__slots__
+
+    def __init__(self, *annotation_types):
+        """
+        Define annotation types to not propagate at this level.
+        """
+
+        setattr(self, StopPropagation.ANNOTATION_TYPES, annotation_types)
