@@ -4,112 +4,29 @@
 Decorators dedicated to class or functions calls.
 """
 
-from b3j0f.annotation.interception import Interceptor
+from b3j0f.annotation.interception import PrivateInterceptor
+from b3j0f.annotation.check import Target
+from b3j0f.utils.iterable import first
 
 try:
     from inspect import getcallargs
 except ImportError:
-    from inspect import getargspec, ismethod
-    from sys import getdefaultencoding
-
-    def getcallargs(func, *positional, **named):
-        """Get the mapping of arguments to values.
-
-        A dict is returned, with keys the function argument names (including the
-        names of the * and ** arguments, if any), and values the respective bound
-        values from 'positional' and 'named'."""
-        args, varargs, varkw, defaults = getargspec(func)
-        f_name = func.__name__
-        arg2value = {}
-
-        # The following closures are basically because of tuple parameter unpacking.
-        assigned_tuple_params = []
-
-        def assign(arg, value):
-            if isinstance(arg, str):
-                arg2value[arg] = value
-            else:
-                assigned_tuple_params.append(arg)
-                value = iter(value)
-                for i, subarg in enumerate(arg):
-                    try:
-                        subvalue = next(value)
-                    except StopIteration:
-                        raise ValueError('need more than %d %s to unpack' %
-                                         (i, 'values' if i > 1 else 'value'))
-                    assign(subarg, subvalue)
-                try:
-                    next(value)
-                except StopIteration:
-                    pass
-                else:
-                    raise ValueError('too many values to unpack')
-
-        def is_assigned(arg):
-            if isinstance(arg, str):
-                return arg in arg2value
-            return arg in assigned_tuple_params
-
-        if ismethod(func) and func.im_self is not None:
-            # implicit 'self' (or 'cls' for classmethods) argument
-            positional = (func.im_self,) + positional
-        num_pos = len(positional)
-        num_total = num_pos + len(named)
-        num_args = len(args)
-        num_defaults = len(defaults) if defaults else 0
-        for arg, value in zip(args, positional):
-            assign(arg, value)
-        if varargs:
-            if num_pos > num_args:
-                assign(varargs, positional[-(num_pos - num_args):])
-            else:
-                assign(varargs, ())
-        elif 0 < num_args < num_pos:
-            raise TypeError('%s() takes %s %d %s (%d given)' % (
-                f_name, 'at most' if defaults else 'exactly', num_args,
-                'arguments' if num_args > 1 else 'argument', num_total))
-        elif num_args == 0 and num_total:
-            if varkw:
-                if num_pos:
-                    # XXX: We should use num_pos, but Python also uses num_total:
-                    raise TypeError('%s() takes exactly 0 arguments '
-                                    '(%d given)' % (f_name, num_total))
-            else:
-                raise TypeError('%s() takes no arguments (%d given)' %
-                                (f_name, num_total))
-        for arg in args:
-            if isinstance(arg, str) and arg in named:
-                if is_assigned(arg):
-                    raise TypeError("%s() got multiple values for keyword "
-                                    "argument '%s'" % (f_name, arg))
-                else:
-                    assign(arg, named.pop(arg))
-        if defaults:    # fill in any missing values with the defaults
-            for arg, value in zip(args[-num_defaults:], defaults):
-                if not is_assigned(arg):
-                    assign(arg, value)
-        if varkw:
-            assign(varkw, named)
-        elif named:
-            unexpected = next(iter(named))
-            if isinstance(unexpected, unicode):
-                unexpected = unexpected.encode(getdefaultencoding(), 'replace')
-            raise TypeError("%s() got an unexpected keyword argument '%s'" %
-                            (f_name, unexpected))
-        unassigned = num_args - len([arg for arg in args if is_assigned(arg)])
-        if unassigned:
-            num_required = num_args - num_defaults
-            raise TypeError('%s() takes %s %d %s (%d given)' % (
-                f_name, 'at least' if defaults else 'exactly', num_required,
-                'arguments' if num_required > 1 else 'argument', num_total))
-        return arg2value
+    from b3j0f.utils.version import getcallargs
 
 from sys import stderr
 
 from time import sleep
 
+__all__ = [
+    'Types', 'types', 'Curried', 'curried', 'Retries'
+]
 
-class Types(Interceptor):
+
+@Target(callable)
+class Types(PrivateInterceptor):
+    """
+    Check routine parameters and return type.
+    """
 
     class TypesError(Exception):
         pass
@@ -117,6 +34,8 @@ class Types(Interceptor):
     class _SpecialCondition(object):
 
         def __init__(self, _type):
+
+            super(Types._SpecialCondition, self).__init__()
 
             self._type = _type
 
@@ -134,12 +53,16 @@ class Types(Interceptor):
 
         def __init__(self, name, parameter_type):
 
+            super(Types._NamedParameterType, self).__init__()
+
             self._name = name
             self._parameter_type = parameter_type
 
     class _NamedParameterTypes(object):
 
         def __init__(self, target, named_parameter_types):
+
+            super(Types._NamedParameterTypes, self).__init__()
 
             self._named_parameter_types = []
 
@@ -158,14 +81,26 @@ class Types(Interceptor):
                 else:
                     self._named_parameter_types.append(None)
 
+    #: return type attribute name
+    RTYPE = 'rtype'
+
+    #: paramter types attribute name
+    PTYPES = 'ptypes'
+
+    __slots__ = (RTYPE, PTYPES) + PrivateInterceptor.__slots__
+
     """
     Check parameter or result types of decorated class or function call.
     """
-    def __init__(self, result_type=None, **named_parameter_types):
+    def __init__(self, rtype=None, ptypes=None, *args, **kwargs):
+        """
+        :param rtype:
+        """
 
-        self._super(Types).__init__()
-        self.result_type = result_type
-        self.named_parameter_types = named_parameter_types
+        super(Types, self).__init__(*args, **kwargs)
+
+        self.result_type = rtype
+        self.named_parameter_types = {} if ptypes is None else ptypes
 
     @staticmethod
     def check_value(value, expected_type):
@@ -236,7 +171,11 @@ class Types(Interceptor):
 
         return result
 
-    def _pre_intercepts(self, target, args, kwargs):
+    def _interception(self, annotation, advicesexecutor):
+
+        target = advicesexecutor.callee
+        args = advicesexecutor.args
+        kwargs = advicesexecutor.kwargs
 
         if self.named_parameter_types:
             callargs = getcallargs(target, *args, **kwargs)
@@ -254,7 +193,11 @@ class Types(Interceptor):
                         Expected: {3}.".format(
                         (arg, value, type(value), expected_type)))
 
-    def _post_intercepts(self, target, args, kwargs, result):
+        result = advicesexecutor.execute()
+
+        target = advicesexecutor.callee
+        args = advicesexecutor.args
+        kwargs = advicesexecutor.kwargs
 
         if self.result_type:
             if not Types.check_value(result, self.result_type):
@@ -266,7 +209,18 @@ class Types(Interceptor):
                         self.result_type))
 
 
-class Curried(Interceptor):
+def types(*args, **kwargs):
+    """
+    Quick alias for the Types Annotation with only args and kwargs parameters.
+    args may contain rtype and kwargs is ptypes.
+    """
+
+    rtype = first(args)
+
+    return Types(rtype=rtype, ptypes=kwargs)
+
+
+class Curried(PrivateInterceptor):
     """
     Inspirated from Jeff Laughlin Consulting LLC projects.
 
@@ -275,25 +229,41 @@ class Curried(Interceptor):
     evaluated.
     """
 
+    #: args attribute name
+    ARGS = 'args'
+
+    #: kwargs attribute name
+    KWARGS = 'kwargs'
+
+    __slots__ = (ARGS, KWARGS) + PrivateInterceptor.__slots__
+
     class CurriedResult(object):
         """
         Curried result in case of missing arguments.
         """
 
+        __slots__ = ('decorator', 'exception')
+
         def __init__(self, decorator, exception):
+
+            super(Curried.CurriedResult, self).__init__()
 
             self.decorator = decorator
             self.exception = exception
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, varargs, keywords, *args, **kwargs):
 
-        self._super(Curried).__init__()
-        self.args = self.default_args = args
-        self.kwargs = self.default_kwargs = kwargs
+        super(Curried, self).__init__(*args, **kwargs)
 
-    def _intercepts(self, target, args, kwargs):
+        self.args = self.default_args = varargs
+        self.kwargs = self.default_kwargs = keywords
+
+    def _interception(self, target, advicesexecutor):
 
         result = None
+
+        args = advicesexecutor.args
+        kwargs = advicesexecutor.kwargs
 
         self.kwargs.update(kwargs)
         self.args += args
@@ -306,10 +276,20 @@ class Curried(Interceptor):
             result = Curried.CurriedResult(self, te)
 
         if result is None:
-            # call target with all arguments
-            result = target(*self.args, **self.kwargs)
+            # call advicesexecutor with all arguments
+            advicesexecutor.args = self.args
+            advicesexecutor.kwargs = self.kwargs
+            result = advicesexecutor.execute()
 
         return result
+
+
+def curried(*args, **kwargs):
+    """
+    Curried annotation with varargs and kwargs
+    """
+
+    return Curried(varargs=args, keywords=kwargs)
 
 
 def example_exc_handler(tries_remaining, exception, delay):
@@ -323,7 +303,7 @@ def example_exc_handler(tries_remaining, exception, delay):
     sleeping for {2} seconds".format(exception, tries_remaining, delay)
 
 
-class Retries(Interceptor):
+class Retries(PrivateInterceptor):
     """Function decorator implementing retrying logic.
 
     delay: Sleep this many seconds * backoff * try number after failure
@@ -347,23 +327,35 @@ class Retries(Interceptor):
     log the failure. Hook is not called after failure if no retries remain.
     """
 
+    MAX_TRIES = 'max_tries'
+    DELAY = 'delay'
+    BACKOFF = 'backoff'
+    EXCEPTIONS = 'exceptions'
+    HOOK = 'hook'
+
+    __slots__ = (
+        MAX_TRIES, DELAY, BACKOFF, EXCEPTIONS, HOOK
+    ) + PrivateInterceptor.__slots__
+
     def __init__(
         self,
         max_tries,
         delay=1,
         backoff=2,
         exceptions=(Exception,),
-        hook=None
+        hook=None,
+        *args, **kwargs
     ):
 
-        self._super(Retries).__init__()
+        super(Retries, self).__init__(*args, **kwargs)
+
         self.max_tries = max_tries
         self.delay = delay
         self.backoff = backoff
         self.exceptions = exceptions
         self.hook = hook
 
-    def _intercepts(self, target, args, kwargs):
+    def _interception(self, target, advicesexecutor):
 
         mydelay = self.delay
         tries = range(self.max_tries)
@@ -372,7 +364,7 @@ class Retries(Interceptor):
         for tries_remaining in tries:
 
             try:
-                return target(*args, **kwargs)
+                return advicesexecutor.execute()
 
             except self.exceptions as e:
 

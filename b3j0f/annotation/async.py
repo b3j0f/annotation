@@ -15,31 +15,36 @@ from Queue import Queue
 
 from signal import signal, SIGALRM, alarm
 
-from b3j0f.annotation.interception import Interceptor
+from b3j0f.annotation.interception import PrivateInterceptor
 from b3j0f.annotation import Annotation
 from b3j0f.annotation.oop import MixIn
 
 
-class Synchronized(Interceptor):
+class Synchronized(PrivateInterceptor):
     """
     Transform a target into a thread safe target.
     """
 
-    def __init__(self, lock=None):
+    #: lock attribute name
+    _LOCK = '_lock'
 
-        self._super(Synchronized, self).__init__()
-        self._lock = lock if lock is not None else RLock()
+    __slots__ = (_LOCK) + PrivateInterceptor.__slots__
 
-    def _pre_intercepts(self, target, args, kwargs):
+    def __init__(self, lock=None, *args, **kwargs):
 
-        self._super(Synchronized)._pre_intercepts(target, args, kwargs)
+        super(Synchronized, self).__init__(*args, **kwargs)
+
+        self._lock = RLock() if lock is None else lock
+
+    def _interception(self, annotation, advicesexecutor):
+
         self._lock.acquire()
 
-    def _post_intercepts(self, target, args, kwargs, result):
+        result = advicesexecutor.execute()
 
-        self._super(Synchronized)._post_intercepts(
-            target, args, kwargs, result)
         self._lock.release()
+
+        return result
 
 
 class SynchronizedClass(Synchronized):
@@ -49,10 +54,9 @@ class SynchronizedClass(Synchronized):
 
     def on_bind_target(self, target):
 
-        self._super(SynchronizedClass)._on_bind_target(target)
         for attribute in target.__dict__:
             if callable(attribute):
-                Synchronized(attribute, self.lock)
+                Synchronized(attribute, self._lock)
 
 
 class Asynchronous(Annotation):
@@ -69,6 +73,7 @@ class Asynchronous(Annotation):
 
         # add start function to wrapper
         super(Asynchronous, self).on_bind_target(target)
+
         setattr(target, 'start', self.start)
 
     def start(self, *args, **kwargs):
@@ -81,13 +86,15 @@ class Asynchronous(Annotation):
 
     class NotYetDoneException(Exception):
 
-        def __init__(self, message):
-
-            self.message = message
+        pass
 
     class Result(object):
 
+        __slots__ = ('queue', 'thread')
+
         def __init__(self, queue, thread):
+
+            super(Asynchronous.Result, self).__init__()
 
             self.queue = queue
             self.thread = thread
@@ -111,7 +118,7 @@ class Asynchronous(Annotation):
             return self.result
 
 
-class TimeOut(Interceptor):
+class TimeOut(PrivateInterceptor):
     """
     Raise an Exception if the target call has not finished in time.
     """
@@ -136,63 +143,74 @@ class TimeOut(Interceptor):
                     timeout_interceptor.kwargs)
             )
 
+    SECONDS = 'seconds'
+    ERROR_MESSAGE = 'error_message'
+
+    __slots__ = (SECONDS, ERROR_MESSAGE) + PrivateInterceptor.__slots__
+
     def __init__(
-        self, seconds, error_message=TimeOutError.DEFAULT_MESSAGE
+        self,
+        seconds, error_message=TimeOutError.DEFAULT_MESSAGE,
+        *args, **kwargs
     ):
 
-        self._super(TimeOut).__init__()
-        self._seconds = seconds
-        self._error_message = error_message
+        super(TimeOut, self).__init__(*args, **kwargs)
+
+        self.seconds = seconds
+        self.error_message = error_message
 
     def _handle_timeout(self, signum, frame):
 
         raise TimeOut.TimeOutError(self)
 
-    def _intercepts(self, target, args, kwargs):
-
-        self._target = target
-        self._args = args
-        self._kwargs = kwargs
+    def _interception(self, advicesexecutor):
 
         signal(SIGALRM, self._handle_timeout)
-        alarm(self._seconds)
+        alarm(self.seconds)
         try:
-            result = self.target(*args, **kwargs)
+            result = advicesexecutor.execute()
         finally:
             signal.alarm(0)
 
         return result
 
 
-class Wait(Interceptor):
+class Wait(PrivateInterceptor):
     """
     Define a time to wait before and after a target call.
     """
 
     DEFAULT_WAIT = 1
 
+    #: before attribute name
+    BEFORE = 'before'
+
+    #: after attribute name
+    AFTER = 'after'
+
+    __slots__ = (BEFORE, AFTER) + PrivateInterceptor.__slots__
+
     def __init__(
-        self,
-        before_seconds=DEFAULT_WAIT,
-        after_seconds=DEFAULT_WAIT,
+        self, before=DEFAULT_WAIT, after=DEFAULT_WAIT, *args, **kwargs
     ):
 
-        self._super(Wait).__init__()
-        self._before_seconds = before_seconds
-        self._after_seconds = after_seconds
+        super(Wait, self).__init__(*args, **kwargs)
 
-    def _pre_intercepts(self, target, args, kwargs):
+        self.before = before
+        self.after = after
 
-        self._super(Wait)._pre_intercepts(target, args, kwargs)
-        sleep(self._before_seconds)
+    def _interception(self, advicesexecutor):
 
-    def _post_intercepts(self, target, args, kwargs, result):
+        sleep(self.before)
 
-        self.super(Wait)._post_intercepts(target, args, kwargs, result)
+        result = advicesexecutor.execute()
+
         sleep(self._after_seconds)
 
+        return result
 
-class Observable(Interceptor):
+
+class Observable(PrivateInterceptor):
     """
     Imlementation of the observer design pattern.
     It transforms a target into an observable object in adding method

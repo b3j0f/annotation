@@ -41,6 +41,7 @@ class MixIn(Annotation):
     def __init__(self, classes=tuple(), *attributes, **named_attributes):
 
         super(MixIn, self).__init__()
+
         self.classes = classes if isinstance(classes, tuple) else (classes,)
         self.attributes = attributes
         self.named_attributes = named_attributes
@@ -272,14 +273,15 @@ class MethodMixIn(Annotation):
     Apply a mixin on a method.
     """
 
-    def __init__(self, function):
+    def __init__(self, function, *args, **kwargs):
 
-        super(MethodMixIn, self).__init__()
+        super(MethodMixIn, self).__init__(*args, **kwargs)
+
         self.function = function
 
-    def bind_target(self, target):
+    def _bind_target(self, target, *args, **kwargs):
 
-        super(MethodMixIn, self).bind_target(target)
+        super(MethodMixIn, self)._bind_target(target, *args, **kwargs)
 
         if ismethod(target):
             cls = target.im_class
@@ -297,6 +299,11 @@ class Deprecated(Interceptor):
     as deprecated. It will result in a warning being emitted
     when the function is used.
     '''
+
+    def __init__(self, *args, **kwargs):
+
+        super(Deprecated, self).__init__(
+            interception=self.__interception)
 
     def interception(self, annotation, advicesexecutor):
         target = advicesexecutor.callee

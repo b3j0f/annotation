@@ -2,35 +2,44 @@
 Interceptors dedicated to decorate decorations.
 """
 
-from b3j0f.annotation.interception import Interceptor, CallInterceptor
+from b3j0f.annotation.interception import (
+    PrivateInterceptor, PrivateCallInterceptor
+)
 from b3j0f.utils.property import setdefault, get_local_property, del_properties
+from b3j0f.utils.iterable import ensureiterable
 
 from types import FunctionType
 
+__all__ = [
+    'Condition', 'ContextChecker', 'MaxCount', 'Target'
+]
 
-class Condition(Interceptor):
+
+class Condition(PrivateInterceptor):
     """
     Apply a pre/post condition on an annotated element call.
     """
 
     #: attribute name for pre condition
-    PRE_CONDITION = 'pre_condition'
+    PRE_COND = 'pre_cond'
 
     #: attribute name for post condition
-    POST_CONDITION = 'post_condition'
+    POST_COND = 'post_cond'
 
-    __slots__ = (PRE_CONDITION, POST_CONDITION) + Interceptor.__slots__
+    __slots__ = (PRE_COND, POST_COND) + PrivateInterceptor.__slots__
 
     class ConditionError(Exception):
         """
         Handle condition errors
         """
+
         pass
 
     class PreConditionError(ConditionError):
         """
         Handle pre condition errors
         """
+
         pass
 
     class PostConditionError(ConditionError):
@@ -40,40 +49,38 @@ class Condition(Interceptor):
 
         pass
 
-    def __init__(
-        self, pre_condition=None, post_condition=None, *args, **kwargs
-    ):
+    def __init__(self, pre_cond=None, post_cond=None, *args, **kwargs):
         """
-        :param pre_condition: function called before target call. Parameters
+        :param pre_cond: function called before target call. Parameters
             are self annotation and AdvicesExecutor.
-        :param post_condition: function called after target call. Parameters
+        :param post_cond: function called after target call. Parameters
             are self annotation, call result and AdvicesExecutor.
         """
 
         super(Condition, self).__init__(*args, **kwargs)
 
-        self.pre_condition = pre_condition
-        self.post_condition = post_condition
+        self.pre_cond = pre_cond
+        self.post_cond = post_cond
 
-    def interception(self, annotation, advicesexecutor):
+    def _interception(self, annotation, advicesexecutor):
         """
         Intercept call of advicesexecutor callee in doing pre/post conditions
         """
 
-        if self.pre_condition is not None:
-            self.pre_condition(self, advicesexecutor)
+        if self.pre_cond is not None:
+            self.pre_cond(self, advicesexecutor)
 
         result = advicesexecutor.execute()
 
-        if self.post_condition is not None:
-            self.post_condition(self, result, advicesexecutor)
+        if self.post_cond is not None:
+            self.post_cond(self, result, advicesexecutor)
 
         return result
 
 
-class ContextChecker(CallInterceptor):
+class ContextChecker(PrivateCallInterceptor):
 
-    __slots__ = CallInterceptor.__slots__
+    __slots__ = PrivateCallInterceptor.__slots__
 
     __CONTEXT_KEY__ = '__context_checker__'
 
@@ -108,7 +115,7 @@ class ContextChecker(CallInterceptor):
             if not contexts:
                 del_properties(target, context_key)
 
-    def interception(self, annotation, advicesexecutor):
+    def _interception(self, annotation, advicesexecutor):
 
         # get target, context_key and context
         target = advicesexecutor.callee
@@ -167,7 +174,11 @@ class MaxCount(ContextChecker):
         if count < 0:
             raise MaxCount.MaxCountError()
 
+# apply MaxCount on itself
+MaxCount()(MaxCount)
 
+
+@MaxCount()
 class Target(ContextChecker):
     """
     Check type of all decorated element decorated by this decorated Annotation.
@@ -188,17 +199,18 @@ class Target(ContextChecker):
 
         super(Target, self).__init__(*args, **kwargs)
 
-        self.types = types if isinstance(types, list) else [types]
+        self.types = ensureiterable(types)
         self.rule = rule
 
-    def interception(self, annotation, target):
+    def _interception(self, annotation, advicesexecutor):
 
-        super(Target, self).interception(annotation, target)
+        super(Target, self)._interception(annotation, advicesexecutor)
 
         raiseException = self.rule == Target.OR
 
+        target = advicesexecutor.callee
+
         for _type in self.types:
-            _type = Interceptor.get_source_target(_type)
 
             if ((_type == type or _type == FunctionType) and isinstance(
                     target, _type)) or issubclass(target, _type):
@@ -212,7 +224,6 @@ class Target(ContextChecker):
 
         if raiseException:
             Interceptor_type = type(annotation)
-            Interceptor_type = Interceptor.get_source_target(Interceptor_type)
 
             raise Target.TargetError(
                 "{0} is not allowed by {1}. Must be {2} {3}".format(

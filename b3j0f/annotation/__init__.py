@@ -512,3 +512,36 @@ class StopPropagation(Annotation):
         """
 
         setattr(self, StopPropagation.ANNOTATION_TYPES, annotation_types)
+
+
+class RoutineAnnotation(Annotation):
+    """
+    Dedicated to add information on any routine, routine parameters or routine
+        result.
+    """
+
+    #: routine attribute name
+    ROUNTINE = 'routine'
+
+    #: result attribute name
+    RESULT = 'result'
+
+    #: parameters attribute name
+    PARAMS = 'params'
+
+    __slots__ = (ROUNTINE, RESULT, PARAMS) + Annotation.__slots__
+
+    def __init__(
+        self, routine=None, params=None, result=None, *args, **kwargs
+    ):
+        """
+        :param routine: routine information
+        :param params: params information
+        :param result: routine result information
+        """
+
+        super(RoutineAnnotation, self).__init__(*args, **kwargs)
+
+        setattr(self, RoutineAnnotation.ROUTINE, routine)
+        setattr(self, RoutineAnnotation.PARAMS, params)
+        setattr(self, RoutineAnnotation.RESULT, result)

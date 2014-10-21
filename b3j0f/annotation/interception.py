@@ -6,7 +6,10 @@ Definition of annotation dedicated to intercept annotated element calls.
 from b3j0f.annotation import Annotation
 from b3j0f.aop.advice import weave, unweave
 
-__all__ = ('Interceptor')
+__all__ = [
+    'Interceptor',
+    'PrivateInterceptor', 'CallInterceptor', 'PrivateCallInterceptor'
+]
 
 
 class Interceptor(Annotation):
@@ -120,6 +123,7 @@ class Interceptor(Annotation):
         if self.enable:
 
             interception = getattr(self, Interceptor.INTERCEPTION)
+
             try:
                 interception(self, advicesexecutor)
             except Exception as e:
@@ -135,6 +139,28 @@ class Interceptor(Annotation):
 
         for interceptor in interceptors:
             setattr(interceptor, Interceptor.ENABLE, enable)
+
+
+class PrivateInterceptor(Interceptor):
+    """
+    Interceptor with a private interception resource
+    """
+
+    __slots__ = Interceptor.__slots__
+
+    def __init__(self, *args, **kwargs):
+        """
+        Do nothing except set self._interception such as its interception
+        """
+        super(PrivateInterceptor, self).__init__(
+            interception=self._interception, *args, **kwargs)
+
+    def _interception(self, annotation, advicesexecutor):
+        """
+        Default interception which raises a NotImplementedError
+        """
+
+        raise NotImplementedError()
 
 
 class CallInterceptor(Interceptor):
@@ -154,3 +180,23 @@ class CallInterceptor(Interceptor):
 
         super(CallInterceptor, self).__init__(
             pointcut=CallInterceptor.__CALL__, *args, **kwargs)
+
+
+class PrivateCallInterceptor(CallInterceptor):
+    """
+    Interceptor dedicated to apply a private interception on target calls.
+    """
+
+    __slots__ = Interceptor.__slots__
+
+    def __init__(self, *args, **kwargs):
+
+        super(PrivateCallInterceptor, self).__init__(
+            interception=self._interception, *args, **kwargs)
+
+    def _interception(self, annotation, advicesexecutor):
+        """
+        Default interception which raise a NotImplementedError
+        """
+
+        raise NotImplementedError()
