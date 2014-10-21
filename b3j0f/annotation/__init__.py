@@ -55,7 +55,7 @@ class Annotation(object):
         all sub target elements.
     - override: (default False) exclude previous annotation of the same type as
         self class.
-    - lifetime: (default None) self life time.
+    - ttl: (default None) self time to leave.
     - in_memory: (default False) save instance in a global dictionary.
 
     It is also possible to set on_bind_target, propagate and override in
@@ -78,7 +78,7 @@ class Annotation(object):
     OVERRIDE = 'override'
 
     #: attribute name for annotation ttl
-    LIFETIME = 'lifetime'
+    LIFETIME = 'ttl'
 
     #: attribute name for in_memory
     IN_MEMORY = 'in_memory'
@@ -99,7 +99,7 @@ class Annotation(object):
 
     def __init__(
         self,
-        on_bind_target=None, propagate=True, override=False, lifetime=None,
+        on_bind_target=None, propagate=True, override=False, ttl=None,
         in_memory=False
     ):
         """
@@ -111,7 +111,7 @@ class Annotation(object):
         :param bool propagate: (True) propagate self to sub targets.
         :param bool override: (False) override old defined annotations of the
             same type.
-        :param float lifetime: (None) self lifetime in seconds.
+        :param float ttl: (None) self ttl in seconds.
         :param bool in_memory: (False) save self in a global memory.
         """
 
@@ -123,7 +123,7 @@ class Annotation(object):
         # set attributes
         setattr(self, Annotation.PROPAGATE, propagate)
         setattr(self, Annotation.OVERRIDE, override)
-        setattr(self, Annotation.LIFETIME, lifetime)
+        setattr(self, Annotation.LIFETIME, ttl)
         setattr(self, Annotation.IN_MEMORY, in_memory)
 
         self.targets = set()
@@ -144,7 +144,7 @@ class Annotation(object):
         """
 
         try:
-            # nonify self lifetime
+            # nonify self ttl
             setattr(self, Annotation.LIFETIME, None)
 
             # for all target
@@ -156,11 +156,11 @@ class Annotation(object):
             pass
 
     @property
-    def lifetime(self):
+    def ttl(self):
         """
-        Get actual lifetime in seconds
+        Get actual ttl in seconds
 
-        :return: actual lifetime
+        :return: actual ttl
         :rtype: float
         """
 
@@ -174,12 +174,12 @@ class Annotation(object):
 
         return result
 
-    @lifetime.setter
-    def lifetime(self, value):
+    @ttl.setter
+    def ttl(self, value):
         """
-        Change self lifetime with input value
+        Change self ttl with input value
 
-        :param float value: new lifetime in seconds
+        :param float value: new ttl in seconds
         """
 
         # get timer

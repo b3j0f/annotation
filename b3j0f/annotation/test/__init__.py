@@ -210,26 +210,26 @@ class TargetsTest(UTCase):
         self.assertIn(TargetsTest, self.annotation.targets)
 
 
-class LifeTimeTest(UTCase):
+class TTLTest(UTCase):
     """
-    Test lifetime
+    Test ttl
     """
 
     def setUp(self):
-        self.lifetime = 0.1
+        self.ttl = 0.1
 
     def test_def(self):
         """
-        Test lifetime at definition
+        Test ttl at definition
         """
 
-        Annotation(lifetime=self.lifetime)(self)
+        Annotation(ttl=self.ttl)(self)
 
         annotations = Annotation.get_annotations(self)
 
         self.assertTrue(annotations)
 
-        sleep(2 * self.lifetime)
+        sleep(2 * self.ttl)
 
         annotations = Annotation.get_annotations(self)
 
@@ -237,7 +237,7 @@ class LifeTimeTest(UTCase):
 
     def test_run(self):
         """
-        Test to set lifetime at runtime
+        Test to set ttl at runtime
         """
 
         annotation = Annotation()
@@ -247,9 +247,9 @@ class LifeTimeTest(UTCase):
 
         self.assertTrue(annotations)
 
-        annotation.lifetime = self.lifetime
+        annotation.ttl = self.ttl
 
-        sleep(2 * self.lifetime)
+        sleep(2 * self.ttl)
 
         annotations = Annotation.get_annotations(self)
 
@@ -257,7 +257,7 @@ class LifeTimeTest(UTCase):
 
     def test_run_run(self):
         """
-        Test to change lifetime after changing it a first time
+        Test to change ttl after changing it a first time
         """
 
         annotation = Annotation()
@@ -267,17 +267,17 @@ class LifeTimeTest(UTCase):
 
         self.assertTrue(annotations)
 
-        annotation.lifetime = 5
+        annotation.ttl = 5
 
-        self.assertLess(annotation.lifetime, 5)
+        self.assertLess(annotation.ttl, 5)
 
-        annotation.lifetime = 10
+        annotation.ttl = 10
 
-        self.assertGreater(annotation.lifetime, 5)
+        self.assertGreater(annotation.ttl, 5)
 
-        annotation.lifetime = None
+        annotation.ttl = None
 
-        self.assertIsNone(annotation.lifetime)
+        self.assertIsNone(annotation.ttl)
 
         del annotation
 
