@@ -30,8 +30,8 @@ class Interceptor(Annotation):
     _POINTCUT = '_pointcut'
 
     __slots__ = (
-        INTERCEPTION, ENABLE, POINTCUT,
-        _POINTCUT
+        INTERCEPTION, ENABLE,  # public attributes
+        _POINTCUT  # private attribute
     ) + Annotation.__slots__
 
     class InterceptorError(Exception):
@@ -65,13 +65,18 @@ class Interceptor(Annotation):
         Unweave self from self targets
         """
 
-        super(Interceptor, self).__delete__(self)
+        try:
+            super(Interceptor, self).__delete__(self)
 
-        pointcut = getattr(self, Interceptor.POINTCUT)
+            pointcut = getattr(self, Interceptor.POINTCUT)
 
-        for target in self.targets:
+            for target in self.targets:
 
-            unweave(target, pointcut=pointcut, advices=self.intercepts)
+                unweave(target, pointcut=pointcut, advices=self.intercepts)
+
+        except AttributeError:
+            # raised if self is already deleted
+            pass
 
     @property
     def pointcut(self):
@@ -95,10 +100,12 @@ class Interceptor(Annotation):
         # and save new pointcut
         setattr(self, Interceptor._POINTCUT, value)
 
-    def _bind_target(self, target):
+    def _bind_target(self, target, *args, **kwargs):
         """
         Weave self.intercepts among target advices with pointcut
         """
+
+        super(Interceptor, self)._bind_target(target=target, *args, **kwargs)
 
         pointcut = getattr(self, Interceptor.POINTCUT)
         weave(target, pointcut=pointcut, advices=self.intercepts)
@@ -119,7 +126,7 @@ class Interceptor(Annotation):
                 raise Interceptor.InterceptorError(e)
 
     @classmethod
-    def enable(interceptor_type, target, enable=True):
+    def set_enable(interceptor_type, target, enable=True):
         """
         (Dis|En)able annotated interceptors.
         """
@@ -146,4 +153,4 @@ class CallInterceptor(Interceptor):
     def __init__(self, *args, **kwargs):
 
         super(CallInterceptor, self).__init__(
-            pointcut='__call__', *args, **kwargs)
+            pointcut=CallInterceptor.__CALL__, *args, **kwargs)

@@ -297,11 +297,9 @@ class Deprecated(Interceptor):
     as deprecated. It will result in a warning being emitted
     when the function is used.
     '''
-    def __init__(self):
-        self._super(Deprecated).__init__()
 
-    def _pre_intercepts(self, target, args, kwargs):
-        self._super(Deprecated)._pre_intercepts(target, args, kwargs)
+    def interception(self, annotation, advicesexecutor):
+        target = advicesexecutor.callee
         warn_explicit(
             "Call to deprecated function {0}.".format(target.__name__),
             category=DeprecationWarning,

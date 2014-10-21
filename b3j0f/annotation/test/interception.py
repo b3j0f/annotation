@@ -16,11 +16,13 @@ class InterceptorTest(UTCase):
 
         self.count = 0
 
-        self.interceptor = Interceptor(
-            interception=self.interception,
-            pointcut='__call__')
+        self.interceptor = Interceptor(interception=self.interception)
 
-        self.interceptor(self)
+        def test():
+            pass
+        self.test_function = test
+
+        self.interceptor(self.test_function)
 
     def interception(self, interceptor, advicesexecutor):
 
@@ -35,13 +37,6 @@ class InterceptorTest(UTCase):
 
         del self.interceptor
 
-    def __call__(self):
-        """
-        Simulate a call for intercepts itself with annotation
-        """
-
-        pass
-
 
 class InterceptionTest(InterceptorTest):
     """
@@ -53,7 +48,7 @@ class InterceptionTest(InterceptorTest):
         Test one annotation and one call
         """
 
-        self()
+        self.test_function()
 
         self.assertEqual(self.count, 1)
 
@@ -61,8 +56,8 @@ class InterceptionTest(InterceptorTest):
         """
         Test one annotation and two calls
         """
-        self()
-        self()
+        self.test_function()
+        self.test_function()
 
         self.assertEqual(self.count, 2)
 
@@ -71,9 +66,9 @@ class InterceptionTest(InterceptorTest):
         Test two annotation and one call
         """
 
-        self.interceptor(self)
+        self.interceptor(self.test_function)
 
-        self()
+        self.test_function()
 
         self.assertEqual(self.count, 2)
 
@@ -82,10 +77,10 @@ class InterceptionTest(InterceptorTest):
         Test two annotations and two calls
         """
 
-        self.interceptor(self)
+        self.interceptor(self.test_function)
 
-        self()
-        self()
+        self.test_function()
+        self.test_function()
 
         self.assertEqual(self.count, 4)
 
@@ -97,33 +92,33 @@ class EnableTest(InterceptorTest):
 
     def test_enable(self):
 
-        self.interceptor = True
+        self.interceptor.enable = True
 
-        self()
+        self.test_function()
 
         self.assertEqual(self.count, 1)
 
     def test_disable(self):
 
-        self.interceptor = False
+        self.interceptor.enable = False
 
-        self()
+        self.test_function()
 
         self.assertEqual(self.count, 0)
 
     def test_enables(self):
 
-        Interceptor.enable(self, enable=True)
+        Interceptor.set_enable(self.test_function, enable=True)
 
-        self()
+        self.test_function()
 
         self.assertEqual(self.count, 1)
 
     def test_disables(self):
 
-        Interceptor.enable(self, enable=False)
+        Interceptor.set_enable(self.test_function, enable=False)
 
-        self()
+        self.test_function()
 
         self.assertEqual(self.count, 0)
 
@@ -141,14 +136,14 @@ class CallInterceptorTest(InterceptorTest):
 
         self.interceptor = CallInterceptor(interception=self.interception)
 
-        self.interceptor(self)
+        self.interceptor(self.test_function)
 
     def test(self):
         """
         Test interception of self
         """
 
-        self()
+        self.test_function()
 
         self.assertEqual(self.count, 1)
 

@@ -143,13 +143,17 @@ class Annotation(object):
         Remove self to self.target annotations
         """
 
-        # nonify self lifetime
-        setattr(self, Annotation.LIFETIME, None)
+        try:
+            # nonify self lifetime
+            setattr(self, Annotation.LIFETIME, None)
 
-        # for all target
-        for target in tuple(self.targets):
-            # remove self from target
-            self.remove_from(target)
+            # for all target
+            for target in tuple(self.targets):
+                # remove self from target
+                self.remove_from(target)
+        except AttributeError:
+            # raised if self is deleted during __del__ execution
+            pass
 
     @property
     def lifetime(self):

@@ -12,16 +12,15 @@ _path = dirname(abspath(__file__))
 with open(join(_path, 'README')) as f:
     desc = f.read()
 
-dependencies = ['b3j0f.utils', 'b3j0f.aop']
+dependencies = ['b3j0f.aop']
 
 setup(
     name="b3j0f.annotation",
     version="0.1.0",
     install_requires=dependencies,
-    packages=find_packages(where=_path, exclude=['*.test']),
-    package_dir={'': _path},
+    packages=find_packages(where='.', exclude=['test.*', '*.test.*']),
     author="b3j0f",
-    author_email="mrb3j0f@gmail.com",
+    author_email="jlabejof@yahoo.fr",
     description="Python Annotation Library",
     long_description=desc,
     url='https://github.com/mrbozzo/annotation/',
