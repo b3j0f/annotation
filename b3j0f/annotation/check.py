@@ -192,8 +192,10 @@ class Target(ContextChecker):
     OR = 'or'
     AND = 'and'
 
-    __TYPES__ = 'types'
-    __RULE__ = 'rule'
+    TYPES = 'types'
+    RULE = 'rule'
+
+    __slots__ = (TYPES, RULE) + ContextChecker.__slots__
 
     def __init__(self, types, rule=OR, *args, **kwargs):
 
@@ -204,7 +206,7 @@ class Target(ContextChecker):
 
     def _interception(self, annotation, advicesexecutor):
 
-        super(Target, self)._interception(annotation, advicesexecutor)
+        result = super(Target, self)._interception(annotation, advicesexecutor)
 
         raiseException = self.rule == Target.OR
 
@@ -232,10 +234,10 @@ class Target(ContextChecker):
                     'among' if self.rule == Target.OR else 'all',
                     self.types))
 
-        return True
+        return result
 
     def _check(self, interceptor, target):
 
-        result = {Target.__TYPES__: self.types, Target.__RULE__: self.rule}
+        result = {Target.TYPES: self.types, Target.RULE: self.rule}
 
         return result

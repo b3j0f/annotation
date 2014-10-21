@@ -108,10 +108,12 @@ class Interceptor(Annotation):
         Weave self.intercepts among target advices with pointcut
         """
 
-        super(Interceptor, self)._bind_target(target=target, *args, **kwargs)
+        result = super(Interceptor, self)._bind_target(target=target, *args, **kwargs)
 
         pointcut = getattr(self, Interceptor.POINTCUT)
-        weave(target, pointcut=pointcut, advices=self.intercepts)
+        weave(result, pointcut=pointcut, advices=self.intercepts)
+
+        return result
 
     def intercepts(self, advicesexecutor):
         """

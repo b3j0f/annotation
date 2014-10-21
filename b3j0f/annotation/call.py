@@ -208,6 +208,8 @@ class Types(PrivateInterceptor):
                         target, args, kwargs, result, type(result),
                         self.result_type))
 
+        return result
+
 
 def types(*args, **kwargs):
     """
@@ -357,6 +359,8 @@ class Retries(PrivateInterceptor):
 
     def _interception(self, target, advicesexecutor):
 
+        result = None
+
         mydelay = self.delay
         tries = range(self.max_tries)
         tries.reverse()
@@ -364,7 +368,7 @@ class Retries(PrivateInterceptor):
         for tries_remaining in tries:
 
             try:
-                return advicesexecutor.execute()
+                result = advicesexecutor.execute()
 
             except self.exceptions as e:
 
@@ -380,3 +384,5 @@ class Retries(PrivateInterceptor):
                     raise
             else:
                 break
+
+        return result

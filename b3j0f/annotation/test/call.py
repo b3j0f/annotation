@@ -5,7 +5,7 @@ from unittest import main
 
 from b3j0f.utils.ut import UTCase
 from b3j0f.annotation.interception import Interceptor
-from b3j0f.annotation.call import Types, Curried, Retries
+from b3j0f.annotation.call import Types, types, Curried, curried, Retries
 
 
 class CallTests(UTCase):
