@@ -143,7 +143,7 @@ class ContextChecker(PrivateCallInterceptor):
         :param dict value: value to update
         """
 
-        raise NotImplementedError()
+        pass
 
 
 class MaxCount(ContextChecker):
@@ -167,7 +167,10 @@ class MaxCount(ContextChecker):
 
         self.count = count
 
-    def _check(self, annotation, target, value):
+    def _check(self, annotation, target, value, *args, **kwargs):
+
+        super(MaxCount, self)._check(
+            annotation, target, value, *args, **kwargs)
 
         count = value.setdefault(MaxCount.__COUNT_KEY__, self.count - 1)
 
@@ -204,9 +207,10 @@ class Target(ContextChecker):
         self.types = ensureiterable(types)
         self.rule = rule
 
-    def _interception(self, annotation, advicesexecutor):
+    def _interception(self, annotation, advicesexecutor, *args, **kwargs):
 
-        result = super(Target, self)._interception(annotation, advicesexecutor)
+        result = super(Target, self)._interception(
+            annotation, advicesexecutor, *args, **kwargs)
 
         raiseException = self.rule == Target.OR
 
@@ -236,8 +240,7 @@ class Target(ContextChecker):
 
         return result
 
-    def _check(self, interceptor, target):
+    def _check(self, annotation, target, value, *args, **kwargs):
 
-        result = {Target.TYPES: self.types, Target.RULE: self.rule}
-
-        return result
+        value[Target.TYPES] = self.types
+        value[Target.RULE] = self.rule

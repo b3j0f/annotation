@@ -5,7 +5,7 @@ Annotations dedicated to object oriented programming.
 """
 
 from b3j0f.annotation import Annotation
-from b3j0f.annotation.interception import Interceptor
+from b3j0f.annotation.interception import Interceptor, PrivateInterceptor
 
 from types import MethodType, UnboundMethodType
 
@@ -281,31 +281,28 @@ class MethodMixIn(Annotation):
 
     def _bind_target(self, target, *args, **kwargs):
 
-        super(MethodMixIn, self)._bind_target(target, *args, **kwargs)
+        result = super(MethodMixIn, self)._bind_target(target, *args, **kwargs)
 
-        if ismethod(target):
+        if ismethod(result):
             cls = target.im_class
             name = target.__name__
             MixIn.mixin_function_or_method(cls, self.function, name)
+
             return target
 
         else:
             return self.function
 
 
-class Deprecated(Interceptor):
+class Deprecated(PrivateInterceptor):
     '''
     Decorator which can be used to mark functions
     as deprecated. It will result in a warning being emitted
     when the function is used.
     '''
 
-    def __init__(self, *args, **kwargs):
+    def _interception(self, annotation, advicesexecutor):
 
-        super(Deprecated, self).__init__(
-            interception=self.__interception)
-
-    def interception(self, annotation, advicesexecutor):
         target = advicesexecutor.callee
         warn_explicit(
             "Call to deprecated function {0}.".format(target.__name__),
@@ -313,6 +310,8 @@ class Deprecated(Interceptor):
             filename=target.func_code.co_filename,
             lineno=target.func_code.co_firstlineno + 1
         )
+        result = advicesexecutor.execute()
+        return result
 
 
 class Singleton(Annotation):
@@ -326,11 +325,12 @@ class Singleton(Annotation):
         self.args = args
         self.kwargs = kwargs
 
-    def bind_target(self, target):
+    def _bind_target(self, target):
 
-        target = super(Singleton, self).bind_target(target)
+        target = super(Singleton, self)._bind_target(target)
 
         instance = target(*self.args, **self.kwargs)
         instance.__call__ = lambda x=None: instance
         target.__call__ = lambda x=None: instance
+
         return instance

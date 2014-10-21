@@ -108,7 +108,8 @@ class Interceptor(Annotation):
         Weave self.intercepts among target advices with pointcut
         """
 
-        result = super(Interceptor, self)._bind_target(target=target, *args, **kwargs)
+        result = super(Interceptor, self)._bind_target(
+            target=target, *args, **kwargs)
 
         pointcut = getattr(self, Interceptor.POINTCUT)
         weave(result, pointcut=pointcut, advices=self.intercepts)
@@ -122,14 +123,21 @@ class Interceptor(Annotation):
         :param advicesexecutor: advices executor
         """
 
+        result = None
+
         if self.enable:
 
             interception = getattr(self, Interceptor.INTERCEPTION)
 
             try:
-                interception(self, advicesexecutor)
+                result = interception(self, advicesexecutor)
             except Exception as e:
                 raise Interceptor.InterceptorError(e)
+
+        else:
+            result = advicesexecutor.execute()
+
+        return result
 
     @classmethod
     def set_enable(interceptor_type, target, enable=True):

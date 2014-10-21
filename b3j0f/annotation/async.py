@@ -28,7 +28,7 @@ class Synchronized(PrivateInterceptor):
     #: lock attribute name
     _LOCK = '_lock'
 
-    __slots__ = (_LOCK) + PrivateInterceptor.__slots__
+    __slots__ = (_LOCK,) + PrivateInterceptor.__slots__
 
     def __init__(self, lock=None, *args, **kwargs):
 
