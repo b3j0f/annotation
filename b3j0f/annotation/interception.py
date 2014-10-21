@@ -63,24 +63,6 @@ class Interceptor(Annotation):
         setattr(self, Interceptor._POINTCUT, pointcut)
         setattr(self, Interceptor.ENABLE, enable)
 
-    def __del__(self):
-        """
-        Unweave self from self targets
-        """
-
-        try:
-            super(Interceptor, self).__delete__(self)
-
-            pointcut = getattr(self, Interceptor.POINTCUT)
-
-            for target in self.targets:
-
-                unweave(target, pointcut=pointcut, advices=self.intercepts)
-
-        except AttributeError:
-            # raised if self is already deleted
-            pass
-
     @property
     def pointcut(self):
         return self._pointcut
@@ -112,9 +94,16 @@ class Interceptor(Annotation):
             target=target, *args, **kwargs)
 
         pointcut = getattr(self, Interceptor.POINTCUT)
+
         weave(result, pointcut=pointcut, advices=self.intercepts)
 
         return result
+
+    def remove_from(self, target, *args, **kwargs):
+
+        super(Interceptor, self).remove_from(target, *args, **kwargs)
+
+        unweave(target, pointcut=self.pointcut, advices=self.intercepts)
 
     def intercepts(self, advicesexecutor):
         """
@@ -197,7 +186,7 @@ class PrivateCallInterceptor(CallInterceptor):
     Interceptor dedicated to apply a private interception on target calls.
     """
 
-    __slots__ = Interceptor.__slots__
+    __slots__ = CallInterceptor.__slots__ + PrivateInterceptor.__slots__
 
     def __init__(self, *args, **kwargs):
 

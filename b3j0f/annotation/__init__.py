@@ -78,7 +78,7 @@ class Annotation(object):
     OVERRIDE = 'override'
 
     #: attribute name for annotation ttl
-    LIFETIME = 'ttl'
+    TTL = 'ttl'
 
     #: attribute name for in_memory
     IN_MEMORY = 'in_memory'
@@ -91,11 +91,11 @@ class Annotation(object):
 
     __slots__ = (
         _ON_BIND_TARGET, __TS, __TIMER,  # private attributes
-        TARGETS, PROPAGATE, OVERRIDE, LIFETIME, IN_MEMORY  # public attributes
+        TARGETS, PROPAGATE, OVERRIDE, TTL, IN_MEMORY  # public attributes
     )
 
     # global dictionary of annotations in memory
-    __ANNOTATIONS_IN_MEMORY = {}
+    __ANNOTATIONS_IN_MEMORY__ = {}
 
     def __init__(
         self,
@@ -123,7 +123,7 @@ class Annotation(object):
         # set attributes
         setattr(self, Annotation.PROPAGATE, propagate)
         setattr(self, Annotation.OVERRIDE, override)
-        setattr(self, Annotation.LIFETIME, ttl)
+        setattr(self, Annotation.TTL, ttl)
         setattr(self, Annotation.IN_MEMORY, in_memory)
 
         self.targets = set()
@@ -145,12 +145,15 @@ class Annotation(object):
 
         try:
             # nonify self ttl
-            setattr(self, Annotation.LIFETIME, None)
+            setattr(self, Annotation.TTL, None)
 
             # for all target
             for target in tuple(self.targets):
                 # remove self from target
                 self.remove_from(target)
+
+            # remove self from memory
+            setattr(self, Annotation.IN_MEMORY, False)
         except AttributeError:
             # raised if self is deleted during __del__ execution
             pass
@@ -214,7 +217,7 @@ class Annotation(object):
 
         self_class = self.__class__
         # check if self class is in global memory
-        memory = Annotation.__ANNOTATIONS_IN_MEMORY.get(self_class, ())
+        memory = Annotation.__ANNOTATIONS_IN_MEMORY__.get(self_class, ())
         # check if self is in memory
         result = self in memory
 
@@ -229,43 +232,17 @@ class Annotation(object):
         """
 
         self_class = self.__class__
-        memory = Annotation.__ANNOTATIONS_IN_MEMORY
+        memory = Annotation.__ANNOTATIONS_IN_MEMORY__
         if value:
             annotations_memory = memory.setdefault(self_class, set())
             annotations_memory.add(self)
         else:
             if self_class in memory:
                 annotations_memory = memory[self_class]
-                if self in annotations_memory:
+                while self in annotations_memory:
                     annotations_memory.remove(self)
-
-    @classmethod
-    def get_memory_annotations(annotation_type, exclude=None):
-        """
-        Get annotations in memory which inherits from self
-
-        :param tuple/type exclude: annotation type(s) to exclude from search
-        :return: found annotations by types
-        :rtype: dict
-        """
-
-        result = {}
-
-        # get global dictionary
-        annotations_in_memory = Annotation.__ANNOTATIONS_IN_MEMORY
-
-        # iterate on annotation classes
-        for annotation_cls in annotations_in_memory:
-
-            # if annotation class is excluded, continue
-            if issubclass(annotation_cls, exclude):
-                continue
-
-            # if annotation class inherits from self, add it in the result
-            if issubclass(annotation_cls, annotation_type):
-                result[annotation_cls] = annotations_in_memory[annotation_cls]
-
-        return result
+                if not annotations_memory:
+                    del memory[self_class]
 
     def bind_target(self, target):
         """
@@ -352,6 +329,36 @@ class Annotation(object):
                 # if target is not annotated anymore, remove the empty list
                 if not local_annotations:
                     del_properties(target, annotations_key)
+
+    @classmethod
+    def get_memory_annotations(annotation_type, exclude=None):
+        """
+        Get annotations in memory which inherits from self
+
+        :param tuple/type exclude: annotation type(s) to exclude from search
+        :return: found annotations by types
+        :rtype: dict
+        """
+
+        result = []
+
+        # get global dictionary
+        annotations_in_memory = Annotation.__ANNOTATIONS_IN_MEMORY__
+
+        exclude = () if exclude is None else exclude
+
+        # iterate on annotation classes
+        for annotation_cls in annotations_in_memory:
+
+            # if annotation class is excluded, continue
+            if issubclass(annotation_cls, exclude):
+                continue
+
+            # if annotation class inherits from self, add it in the result
+            if issubclass(annotation_cls, annotation_type):
+                result += annotations_in_memory[annotation_cls]
+
+        return result
 
     @classmethod
     def get_local_annotations(annotation_type, target, exclude=None):
@@ -506,10 +513,12 @@ class StopPropagation(Annotation):
 
     __slots__ = (ANNOTATION_TYPES,) + Annotation.__slots__
 
-    def __init__(self, *annotation_types):
+    def __init__(self, *annotation_types, **kwargs):
         """
         Define annotation types to not propagate at this level.
         """
+
+        super(StopPropagation, self).__init__(**kwargs)
 
         setattr(self, StopPropagation.ANNOTATION_TYPES, annotation_types)
 
@@ -521,7 +530,7 @@ class RoutineAnnotation(Annotation):
     """
 
     #: routine attribute name
-    ROUNTINE = 'routine'
+    ROUTINE = 'routine'
 
     #: result attribute name
     RESULT = 'result'
@@ -529,7 +538,7 @@ class RoutineAnnotation(Annotation):
     #: parameters attribute name
     PARAMS = 'params'
 
-    __slots__ = (ROUNTINE, RESULT, PARAMS) + Annotation.__slots__
+    __slots__ = (ROUTINE, RESULT, PARAMS) + Annotation.__slots__
 
     def __init__(
         self, routine=None, params=None, result=None, *args, **kwargs

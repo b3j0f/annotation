@@ -4,38 +4,73 @@
 from unittest import main
 
 from b3j0f.utils.ut import UTCase
-from b3j0f.annotation.interception import Interceptor
+from b3j0f.annotation import Annotation
 from b3j0f.annotation.check import Condition, MaxCount, Target
 
 
-class CheckTests(UTCase):
+class ConditionTest(UTCase):
 
     def setUp(self):
-        pass
 
-    def testPreCondition(self):
+        self.condition = Condition()
+        self.condition(self.test)
 
-        def precond(target, args, kwargs):
-            kwargs['a'] *= 2
+    def test(self, a=None):
 
-        @Condition(pre=precond)
-        def a(a):
-            return a
+        return a
 
-        self.assertEqual(a(a=2), 4)
 
-    def testPostCondition(self):
+class PreConditionTest(ConditionTest):
 
-        def postcond(target, result, args, kwargs):
-            if result == 0:
-                raise Exception()
+    def setUp(self):
 
-        @Condition(post=postcond)
-        def a(a):
-            return a
+        super(PreConditionTest, self).setUp()
 
-        self._assertCall(a, 0)
-        a(1)
+        self.condition.pre_cond = self.pre_cond
+
+    def pre_cond(self, annotation, advicesexecutor):
+        """
+        Precondition which fails if kwargs in advicesexecutor
+        """
+
+        if advicesexecutor.kwargs:
+            raise Exception()
+
+    def test_success(self):
+
+        self.test()
+
+    def test_failure(self):
+
+        self.assertRaises(Exception, self.test, a=1)
+
+
+class PostConditionTest(ConditionTest):
+
+    def setUp(self):
+
+        super(PostConditionTest, self).setUp()
+
+        self.condition.post_cond = self.post_cond
+
+    def post_cond(self, annotation, result, advicesexecutor):
+        """
+        Post condition which fails if result is True
+        """
+
+        if result:
+            raise Exception()
+
+    def test_success(self):
+
+        self.test()
+
+    def test_failure(self):
+
+        self.assertRaises(Exception, self.test, a=True)
+
+
+class CheckTests(UTCase):
 
     def testMaxCount(self):
 
@@ -54,7 +89,7 @@ class CheckTests(UTCase):
         e = None
 
         @MaxCount(1)
-        class Test1(Interceptor):
+        class Test1(Annotation):
             pass
 
         try:
@@ -70,7 +105,7 @@ class CheckTests(UTCase):
         e = None
 
         @MaxCount(2)
-        class Test2(Interceptor):
+        class Test2(Annotation):
             pass
 
         @Test2()
@@ -92,7 +127,7 @@ class CheckTests(UTCase):
     def testTarget(self):
 
         @Target(type)
-        class A(Interceptor):
+        class A(Annotation):
             pass
 
         e = None
@@ -113,7 +148,7 @@ class CheckTests(UTCase):
             pass
 
         @Target(Target.FUNC)
-        class B(Interceptor):
+        class B(Annotation):
             pass
 
         @B()
@@ -132,7 +167,7 @@ class CheckTests(UTCase):
         e = None
 
         @Target(CheckTests)
-        class C(Interceptor):
+        class C(Annotation):
             pass
 
         try:
@@ -151,7 +186,7 @@ class CheckTests(UTCase):
             pass
 
         @Target([MaxCount, Target], rule=Target.AND)
-        class D(Interceptor):
+        class D(Annotation):
             pass
 
         @D()
@@ -168,7 +203,7 @@ class CheckTests(UTCase):
         self.assertIsNotNone(e)
 
         @Target([MaxCount, str], rule=Target.OR)
-        class D(Interceptor):
+        class D(Annotation):
             pass
 
         @D()
