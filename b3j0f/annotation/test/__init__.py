@@ -43,6 +43,18 @@ class MemoryTest(AnnotationTest):
     Test InMemory Annotations.
     """
 
+    def setUp(self):
+
+        super(MemoryTest, self).setUp()
+
+        Annotation.free_memory()
+
+    def tearDown(self):
+
+        super(MemoryTest, self).tearDown()
+
+        Annotation.free_memory()
+
     def test_not_in_memory(self):
         """
         Test annotation not in memory
@@ -58,7 +70,7 @@ class MemoryTest(AnnotationTest):
 
         self.annotation = Annotation(in_memory=True)
         annotations = Annotation.get_memory_annotations()
-        self.assertEqual(annotations, [self.annotation])
+        self.assertEqual(annotations, set((self.annotation,)))
 
     def test_set_in_memory(self):
         """
@@ -67,7 +79,7 @@ class MemoryTest(AnnotationTest):
 
         self.annotation.in_memory = True
         annotations = Annotation.get_memory_annotations()
-        self.assertEqual(annotations, [self.annotation])
+        self.assertEqual(annotations, set((self.annotation,)))
 
     def test_set_not_in_memory(self):
         """
@@ -76,7 +88,7 @@ class MemoryTest(AnnotationTest):
 
         self.annotation.in_memory = True
         annotations = Annotation.get_memory_annotations()
-        self.assertEqual(annotations, [self.annotation])
+        self.assertEqual(annotations, set((self.annotation,)))
         self.annotation.in_memory = False
         annotations = Annotation.get_memory_annotations()
         self.assertFalse(annotations)
@@ -86,7 +98,7 @@ class MemoryTest(AnnotationTest):
         testAnnotation = TestAnnotation(in_memory=True)
         self.annotation.in_memory = True
         annotations = Annotation.get_memory_annotations()
-        self.assertEqual(annotations, [testAnnotation, self.annotation])
+        self.assertEqual(annotations, set((testAnnotation, self.annotation)))
         testAnnotation.__del__()
 
     def test_get_inheritance(self):
@@ -94,7 +106,7 @@ class MemoryTest(AnnotationTest):
         testAnnotation = TestAnnotation(in_memory=True)
         self.annotation.in_memory = True
         annotations = TestAnnotation.get_memory_annotations()
-        self.assertEqual(annotations, [testAnnotation])
+        self.assertEqual(annotations, set((testAnnotation,)))
         testAnnotation.__del__()
 
     def test_exclude(self):
@@ -102,7 +114,7 @@ class MemoryTest(AnnotationTest):
         testAnnotation = TestAnnotation(in_memory=True)
         self.annotation.in_memory = True
         annotations = Annotation.get_memory_annotations(exclude=TestAnnotation)
-        self.assertEqual(annotations, [self.annotation])
+        self.assertEqual(annotations, set((self.annotation,)))
         annotations = Annotation.get_memory_annotations(exclude=Annotation)
         self.assertFalse(annotations)
         testAnnotation.__del__()
@@ -845,23 +857,24 @@ class GetAnnotatedFields(AnnotationTest):
     Test get_annotated_fields class method
     """
 
-    def test(self):
+    def test_class(self):
 
-        field_names = dir(self)
+        field_names = dir(GetAnnotatedFields)
 
         fields = set()
 
         for field_name in list(field_names):
 
-            field = getattr(self, field_name)
+            if hasattr(GetAnnotatedFields, field_name):
+                field = getattr(GetAnnotatedFields, field_name, None)
 
-            try:
-                self.annotation(field)
-            except Exception:
-                continue
-            fields.add(field)
+                try:
+                    self.annotation(field)
+                except Exception:
+                    continue
+                fields.add(field)
 
-        annotated_fields = Annotation.get_annotated_fields(self)
+        annotated_fields = Annotation.get_annotated_fields(GetAnnotatedFields)
 
         self.assertEqual(len(annotated_fields), len(fields))
 

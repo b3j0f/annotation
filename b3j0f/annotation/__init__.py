@@ -280,7 +280,8 @@ class Annotation(object):
         # if local_annotations do not exist, put them in target
         if not local_annotations:
             put_properties(
-                target, **{Annotation.__ANNOTATIONS_KEY__: local_annotations})
+                target,
+                properties={Annotation.__ANNOTATIONS_KEY__: local_annotations})
 
         # insert self at first position
         local_annotations.insert(0, self)
@@ -331,16 +332,34 @@ class Annotation(object):
                     del_properties(target, annotations_key)
 
     @classmethod
+    def free_memory(annotation_type, exclude=None):
+        """
+        Free global annotation memory
+        """
+
+        annotations_in_memory = Annotation.__ANNOTATIONS_IN_MEMORY__
+
+        exclude = () if exclude is None else exclude
+
+        for annotation_cls in annotations_in_memory.keys():
+
+            if issubclass(annotation_cls, exclude):
+                continue
+
+            if issubclass(annotation_cls, annotation_type):
+                del annotations_in_memory[annotation_cls]
+
+    @classmethod
     def get_memory_annotations(annotation_type, exclude=None):
         """
-        Get annotations in memory which inherits from self
+        Get annotations in memory which inherits from annotation_type.
 
         :param tuple/type exclude: annotation type(s) to exclude from search
-        :return: found annotations by types
-        :rtype: dict
+        :return: found annotations which inherits from annotation_type.
+        :rtype: set
         """
 
-        result = []
+        result = set()
 
         # get global dictionary
         annotations_in_memory = Annotation.__ANNOTATIONS_IN_MEMORY__
@@ -356,7 +375,7 @@ class Annotation(object):
 
             # if annotation class inherits from self, add it in the result
             if issubclass(annotation_cls, annotation_type):
-                result += annotations_in_memory[annotation_cls]
+                result |= annotations_in_memory[annotation_cls]
 
         return result
 
