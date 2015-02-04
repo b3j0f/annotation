@@ -27,6 +27,7 @@
 """
 Definition of annotation dedicated to intercept annotated element calls.
 """
+
 from b3j0f.annotation import Annotation
 from b3j0f.aop.advice import weave, unweave
 
@@ -37,8 +38,7 @@ __all__ = [
 
 
 class Interceptor(Annotation):
-    """
-    Annotation able to intercept annotated elements.
+    """Annotation able to intercept annotated elements.
 
     This interception can be disabled at any time and specialized with a
         pointcut.
@@ -65,8 +65,7 @@ class Interceptor(Annotation):
     ) + Annotation.__slots__
 
     class InterceptorError(Exception):
-        """
-        Handle Interceptor errors
+        """Handle Interceptor errors.
         """
 
         pass
@@ -74,8 +73,7 @@ class Interceptor(Annotation):
     def __init__(
         self, interception=None, pointcut=None, enable=True, *args, **kwargs
     ):
-        """
-        Default constructor with interception function and enable property.
+        """Default constructor with interception function and enable property.
 
         :param callable interception: called if self is enabled and if any
             annotated element is called. Parameters of call are self annotation
@@ -96,8 +94,7 @@ class Interceptor(Annotation):
 
     @pointcut.setter
     def pointcut(self, value):
-        """
-        Change of pointcut
+        """Change of pointcut
         """
 
         pointcut = getattr(self, Interceptor.POINTCUT)
@@ -112,29 +109,30 @@ class Interceptor(Annotation):
         # and save new pointcut
         setattr(self, Interceptor._POINTCUT, value)
 
-    def _bind_target(self, target, *args, **kwargs):
-        """
-        Weave self.intercepts among target advices with pointcut
+    def _bind_target(self, target, ctx=None, *args, **kwargs):
+        """Weave self.intercepts among target advices with pointcut
         """
 
         result = super(Interceptor, self)._bind_target(
-            target=target, *args, **kwargs)
+            target=target, *args, **kwargs
+        )
 
         pointcut = getattr(self, Interceptor.POINTCUT)
 
-        weave(result, pointcut=pointcut, advices=self.intercepts)
+        weave(result, pointcut=pointcut, advices=self.intercepts, ctx=ctx)
 
         return result
 
-    def remove_from(self, target, *args, **kwargs):
+    def remove_from(self, target, ctx=None, *args, **kwargs):
 
         super(Interceptor, self).remove_from(target, *args, **kwargs)
 
-        unweave(target, pointcut=self.pointcut, advices=self.intercepts)
+        unweave(
+            target, pointcut=self.pointcut, advices=self.intercepts, ctx=ctx
+        )
 
     def intercepts(self, joinpoint):
-        """
-        Self target interception if self is enabled
+        """Self target interception if self is enabled
 
         :param joinpoint: advices executor
         """
@@ -156,8 +154,7 @@ class Interceptor(Annotation):
 
     @classmethod
     def set_enable(interceptor_type, target, enable=True):
-        """
-        (Dis|En)able annotated interceptors.
+        """(Dis|En)able annotated interceptors.
         """
 
         interceptors = interceptor_type.get_annotations(target)
@@ -167,8 +164,7 @@ class Interceptor(Annotation):
 
 
 class PrivateInterceptor(Interceptor):
-    """
-    Interceptor with a private interception resource
+    """Interceptor with a private interception resource.
     """
 
     __slots__ = Interceptor.__slots__
@@ -178,11 +174,12 @@ class PrivateInterceptor(Interceptor):
         Do nothing except set self._interception such as its interception
         """
         super(PrivateInterceptor, self).__init__(
-            interception=self._interception, *args, **kwargs)
+            interception=self._interception, *args, **kwargs
+        )
 
     def _interception(self, joinpoint):
         """
-        Default interception which raises a NotImplementedError
+        Default interception which raises a NotImplementedError.
 
         :param Annotation annotation: intercepted annotation
         """
@@ -191,10 +188,12 @@ class PrivateInterceptor(Interceptor):
 
 
 class CallInterceptor(Interceptor):
-    """
-    Interceptor dedicated to intercept call of annotated element.
+    """Interceptor dedicated to intercept call of annotated element.
 
-    Instead of Interceptor, the pointcut equals '__call__'.
+    Instead of Interceptor, the pointcut equals '__call__', therefore, the
+    target may be a class instead of an instance beceause python does not
+    handle system methods (such as __call__, __repr__, etc.) if they are
+    overriden on instance.
 
     It could be used to intercepts annotation binding annotated by self.
     """
@@ -206,12 +205,17 @@ class CallInterceptor(Interceptor):
     def __init__(self, *args, **kwargs):
 
         super(CallInterceptor, self).__init__(
-            pointcut=CallInterceptor.__CALL__, *args, **kwargs)
+            pointcut=CallInterceptor.__CALL__, *args, **kwargs
+        )
 
 
 class PrivateCallInterceptor(CallInterceptor):
-    """
-    Interceptor dedicated to apply a private interception on target calls.
+    """Interceptor dedicated to apply a private interception on target calls.
+
+    Instead of Interceptor, the pointcut equals '__call__', therefore, the
+    target may be a class instead of an instance beceause python does not
+    handle system methods (such as __call__, __repr__, etc.) if they are
+    overriden on instance.
     """
 
     __slots__ = CallInterceptor.__slots__ + PrivateInterceptor.__slots__
@@ -219,22 +223,12 @@ class PrivateCallInterceptor(CallInterceptor):
     def __init__(self, *args, **kwargs):
 
         super(PrivateCallInterceptor, self).__init__(
-            interception=self._interception, *args, **kwargs)
+            interception=self._interception, *args, **kwargs
+        )
 
     def _interception(self, joinpoint):
         """
-        Default interception which raise a NotImplementedError
+        Default interception which raise a NotImplementedError.
         """
 
         raise NotImplementedError()
-
-
-class A:
-    def __call__(self):
-        pass
-
-a = A()
-
-CallInterceptor(interception=lambda ae: 'FUCK')(a)
-
-print(a())
