@@ -1,5 +1,29 @@
 # -*- coding: utf-8 -*-
 
+# --------------------------------------------------------------------
+# The MIT License (MIT)
+#
+# Copyright (c) 2015 Jonathan Labéjof <jonathan.labejof@gmail.com>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+# --------------------------------------------------------------------
+
 """
 This module defines the Annotation class.
 
@@ -273,7 +297,8 @@ class Annotation(object):
         try:
             # get annotations from target if exists.
             local_annotations = get_local_property(
-                target, Annotation.__ANNOTATIONS_KEY__, [])
+                target, Annotation.__ANNOTATIONS_KEY__, []
+            )
         except TypeError:
             raise TypeError('target {0} must be hashable.'.format(target))
 
@@ -281,7 +306,8 @@ class Annotation(object):
         if not local_annotations:
             put_properties(
                 target,
-                properties={Annotation.__ANNOTATIONS_KEY__: local_annotations})
+                properties={Annotation.__ANNOTATIONS_KEY__: local_annotations}
+            )
 
         # insert self at first position
         local_annotations.insert(0, self)
@@ -400,7 +426,8 @@ class Annotation(object):
         try:
             # get local annotations
             local_annotations = get_local_property(
-                target, Annotation.__ANNOTATIONS_KEY__, result)
+                target, Annotation.__ANNOTATIONS_KEY__, result
+            )
         except TypeError:
             raise TypeError('target {0} must be hashable'.format(target))
 
@@ -432,7 +459,8 @@ class Annotation(object):
         try:
             # get local annotations
             local_annotations = get_local_property(
-                target, Annotation.__ANNOTATIONS_KEY__)
+                target, Annotation.__ANNOTATIONS_KEY__
+            )
         except TypeError:
             raise TypeError('target {0} must be hashable'.format(target))
 
@@ -451,29 +479,25 @@ class Annotation(object):
                 annotation_to_remove.remove_from(target)
 
     @classmethod
-    def get_annotations(annotation_type, target, exclude=None):
-        """
-        Returns all input target annotations of annotation_type type sorted by
-        definition order.
+    def get_annotations(annotation_type, target, exclude=None, ctx=None):
+        """Returns all input target annotations of annotation_type type sorted
+        by definition order.
 
         :param type annotation_type: type of annotation to get from target.
         :param target: target from where get annotations.
         :param tuple/type exclude: annotation types to remove from selection.
+        :param ctx: target ctx.
         """
 
         result = []
 
-        try:
-            property_elts = get_property(
-                target, Annotation.__ANNOTATIONS_KEY__)
-        except TypeError:
-            raise TypeError('target {0} must be hashable'.format(target))
+        annotations_by_ctx = get_property(
+            elt=target, key=Annotation.__ANNOTATIONS_KEY__, ctx=ctx
+        )
 
         exclude = () if exclude is None else exclude
 
-        for elt in property_elts:
-
-            annotations = property_elts[elt]
+        for elt, annotations in annotations_by_ctx:
 
             for annotation in annotations:
 
@@ -490,8 +514,8 @@ class Annotation(object):
                     exclude += (annotation.__class__, )
 
                 # check for annotation type
-                if isinstance(annotation, annotation_type) \
-                        and not isinstance(annotation, exclude):
+                if (isinstance(annotation, annotation_type)
+                        and not isinstance(annotation, exclude)):
 
                     result.append(annotation)
 

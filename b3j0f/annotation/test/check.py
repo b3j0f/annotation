@@ -1,6 +1,30 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# --------------------------------------------------------------------
+# The MIT License (MIT)
+#
+# Copyright (c) 2015 Jonathan Labéjof <jonathan.labejof@gmail.com>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+# --------------------------------------------------------------------
+
 from unittest import main
 
 from b3j0f.utils.ut import UTCase
@@ -13,11 +37,11 @@ class ConditionTest(UTCase):
     def setUp(self):
 
         self.condition = Condition()
-        self.condition(self.test)
+        self.condition(self._test)
 
-    def test(self, a=None):
+    def _test(self, **kwargs):
 
-        return a
+        return kwargs.get('a')
 
 
 class PreConditionTest(ConditionTest):
@@ -28,21 +52,21 @@ class PreConditionTest(ConditionTest):
 
         self.condition.pre_cond = self.pre_cond
 
-    def pre_cond(self, annotation, advicesexecutor):
+    def pre_cond(self, joinpoint):
         """
-        Precondition which fails if kwargs in advicesexecutor
+        Precondition which fails if kwargs in joinpoint
         """
 
-        if advicesexecutor.kwargs:
+        if 'a' in joinpoint.kwargs:
             raise Exception()
 
     def test_success(self):
 
-        self.test()
+        self._test()
 
     def test_failure(self):
 
-        self.assertRaises(Exception, self.test, a=1)
+        self.assertRaises(Exception, self._test, a=1)
 
 
 class PostConditionTest(ConditionTest):
@@ -53,56 +77,48 @@ class PostConditionTest(ConditionTest):
 
         self.condition.post_cond = self.post_cond
 
-    def post_cond(self, annotation, result, advicesexecutor):
+    def post_cond(self, joinpoint):
         """
         Post condition which fails if result is True
         """
 
-        if result:
+        if joinpoint.exec_ctx[Condition.RESULT]:
             raise Exception()
 
     def test_success(self):
 
-        self.test()
+        self._test()
 
     def test_failure(self):
 
-        self.assertRaises(Exception, self.test, a=True)
+        self.assertRaises(Exception, self._test, a=True)
+
+
+class ContextCheckerTest(UTCase):
+    """
+    Test ContextChecker
+    """
+
+    pass
 
 
 class CheckTests(UTCase):
 
-    def testMaxCount(self):
+    def test_class(self):
 
-        e = None
-
-        try:
-            @MaxCount(1)
-            @MaxCount(1)
-            class A(object):
-                pass
-        except Exception as e:
+        class Test(object):
             pass
 
-        self.assertIsNotNone(e)
+        MaxCount()(Test)
+        self.assertRaises(MaxCount.Error, MaxCount().__call__, Test)
 
-        e = None
+    def test_function(self):
 
-        @MaxCount(1)
-        class Test1(Annotation):
+        def test():
             pass
 
-        try:
-            @Test1()
-            @Test1()
-            def b():
-                pass
-        except Exception as e:
-            pass
-
-        self.assertIsNotNone(e)
-
-        e = None
+        MaxCount()(test)
+        self.assertRaises(MaxCount.Error, MaxCount(), test)
 
         @MaxCount(2)
         class Test2(Annotation):

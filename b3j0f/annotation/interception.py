@@ -1,5 +1,29 @@
 # -*- coding: utf-8 -*-
 
+# --------------------------------------------------------------------
+# The MIT License (MIT)
+#
+# Copyright (c) 2015 Jonathan Labéjof <jonathan.labejof@gmail.com>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+# --------------------------------------------------------------------
+
 """
 Definition of annotation dedicated to intercept annotated element calls.
 """
@@ -20,14 +44,17 @@ class Interceptor(Annotation):
         pointcut.
     """
 
-    #: attribute name for doing the interception
+    #: interception attribute name
     INTERCEPTION = 'interception'
 
-    #: attribute name for pointcut
+    #: pointcut attribute name
     POINTCUT = 'pointcut'
 
-    #: attribure name for enable the interception
+    #: attribute name for enable the interception
     ENABLE = 'enable'
+
+    #: interceptor attribute name
+    INTERCEPTOR = '__interceptor__'
 
     #: private attribute name for pointcut
     _POINTCUT = '_pointcut'
@@ -105,11 +132,11 @@ class Interceptor(Annotation):
 
         unweave(target, pointcut=self.pointcut, advices=self.intercepts)
 
-    def intercepts(self, advicesexecutor):
+    def intercepts(self, joinpoint):
         """
         Self target interception if self is enabled
 
-        :param advicesexecutor: advices executor
+        :param joinpoint: advices executor
         """
 
         result = None
@@ -118,13 +145,12 @@ class Interceptor(Annotation):
 
             interception = getattr(self, Interceptor.INTERCEPTION)
 
-            try:
-                result = interception(self, advicesexecutor)
-            except Exception as e:
-                raise Interceptor.InterceptorError(e)
+            joinpoint.exec_ctx[Interceptor.INTERCEPTION] = self
+
+            result = interception(joinpoint)
 
         else:
-            result = advicesexecutor.execute()
+            result = joinpoint.proceed()
 
         return result
 
@@ -154,9 +180,11 @@ class PrivateInterceptor(Interceptor):
         super(PrivateInterceptor, self).__init__(
             interception=self._interception, *args, **kwargs)
 
-    def _interception(self, annotation, advicesexecutor):
+    def _interception(self, joinpoint):
         """
         Default interception which raises a NotImplementedError
+
+        :param Annotation annotation: intercepted annotation
         """
 
         raise NotImplementedError()
@@ -193,9 +221,20 @@ class PrivateCallInterceptor(CallInterceptor):
         super(PrivateCallInterceptor, self).__init__(
             interception=self._interception, *args, **kwargs)
 
-    def _interception(self, annotation, advicesexecutor):
+    def _interception(self, joinpoint):
         """
         Default interception which raise a NotImplementedError
         """
 
         raise NotImplementedError()
+
+
+class A:
+    def __call__(self):
+        pass
+
+a = A()
+
+CallInterceptor(interception=lambda ae: 'FUCK')(a)
+
+print(a())

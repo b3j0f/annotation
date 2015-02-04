@@ -1,5 +1,29 @@
 # -*- coding: utf-8 -*-
 
+# --------------------------------------------------------------------
+# The MIT License (MIT)
+#
+# Copyright (c) 2015 Jonathan Labéjof <jonathan.labejof@gmail.com>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+# --------------------------------------------------------------------
+
 """
 Decorators dedicated to class or functions calls.
 """
@@ -84,7 +108,7 @@ class Types(PrivateInterceptor):
     #: return type attribute name
     RTYPE = 'rtype'
 
-    #: paramter types attribute name
+    #: parameter types attribute name
     PTYPES = 'ptypes'
 
     __slots__ = (RTYPE, PTYPES) + PrivateInterceptor.__slots__
@@ -99,8 +123,8 @@ class Types(PrivateInterceptor):
 
         super(Types, self).__init__(*args, **kwargs)
 
-        self.result_type = rtype
-        self.named_parameter_types = {} if ptypes is None else ptypes
+        self.rtype = rtype
+        self.ptypes = {} if ptypes is None else ptypes
 
     @staticmethod
     def check_value(value, expected_type):
@@ -171,18 +195,18 @@ class Types(PrivateInterceptor):
 
         return result
 
-    def _interception(self, annotation, advicesexecutor):
+    def _interception(self, joinpoint):
 
-        target = advicesexecutor.callee
-        args = advicesexecutor.args
-        kwargs = advicesexecutor.kwargs
+        target = joinpoint.callee
+        args = joinpoint.args
+        kwargs = joinpoint.kwargs
 
         if self.named_parameter_types:
             callargs = getcallargs(target, *args, **kwargs)
 
             for arg in callargs:
                 value = callargs[arg]
-                expected_type = self.named_parameter_types.get(arg)
+                expected_type = self.ptypes.get(arg)
 
                 if expected_type is not None and \
                     not Types.check_value(
@@ -191,13 +215,14 @@ class Types(PrivateInterceptor):
                     raise Types.TypesError(
                         "wrong typed parameter for arg {0} : {1} ({2}). \
                         Expected: {3}.".format(
-                        (arg, value, type(value), expected_type)))
+                        (arg, value, type(value), expected_type))
+                    )
 
-        result = advicesexecutor.execute()
+        result = joinpoint.proceed()
 
-        target = advicesexecutor.callee
-        args = advicesexecutor.args
-        kwargs = advicesexecutor.kwargs
+        target = joinpoint.callee
+        args = joinpoint.args
+        kwargs = joinpoint.kwargs
 
         if self.result_type:
             if not Types.check_value(result, self.result_type):
@@ -206,7 +231,8 @@ class Types(PrivateInterceptor):
                     ({4}). Expected {5}.".
                     format(
                         target, args, kwargs, result, type(result),
-                        self.result_type))
+                        self.result_type)
+                )
 
         return result
 
@@ -260,12 +286,14 @@ class Curried(PrivateInterceptor):
         self.args = self.default_args = varargs
         self.kwargs = self.default_kwargs = keywords
 
-    def _interception(self, target, advicesexecutor):
+    def _interception(self, joinpoint):
 
         result = None
 
-        args = advicesexecutor.args
-        kwargs = advicesexecutor.kwargs
+        target = joinpoint.kwargs['target']
+
+        args = joinpoint.args
+        kwargs = joinpoint.kwargs
 
         self.kwargs.update(kwargs)
         self.args += args
@@ -278,10 +306,10 @@ class Curried(PrivateInterceptor):
             result = Curried.CurriedResult(self, te)
 
         if result is None:
-            # call advicesexecutor with all arguments
-            advicesexecutor.args = self.args
-            advicesexecutor.kwargs = self.kwargs
-            result = advicesexecutor.execute()
+            # call joinpoint with all arguments
+            joinpoint.args = self.args
+            joinpoint.kwargs = self.kwargs
+            result = joinpoint.execute()
 
         return result
 
@@ -357,7 +385,7 @@ class Retries(PrivateInterceptor):
         self.exceptions = exceptions
         self.hook = hook
 
-    def _interception(self, target, advicesexecutor):
+    def _interception(self, joinpoint):
 
         result = None
 
@@ -368,7 +396,7 @@ class Retries(PrivateInterceptor):
         for tries_remaining in tries:
 
             try:
-                result = advicesexecutor.execute()
+                result = joinpoint.proceed()
 
             except self.exceptions as e:
 

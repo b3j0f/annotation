@@ -1,17 +1,43 @@
+# -*- coding: utf-8 -*-
+
+# --------------------------------------------------------------------
+# The MIT License (MIT)
+#
+# Copyright (c) 2015 Jonathan Labéjof <jonathan.labejof@gmail.com>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+# --------------------------------------------------------------------
+
 """
 Interceptors dedicated to decorate decorations.
 """
 
+from b3j0f.annotation import Annotation
 from b3j0f.annotation.interception import (
     PrivateInterceptor, PrivateCallInterceptor
 )
-from b3j0f.utils.property import setdefault, get_local_property, del_properties
 from b3j0f.utils.iterable import ensureiterable
 
 from types import FunctionType
 
 __all__ = [
-    'Condition', 'ContextChecker', 'MaxCount', 'Target'
+    'Condition', 'MaxCount', 'Target'
 ]
 
 
@@ -19,14 +45,6 @@ class Condition(PrivateInterceptor):
     """
     Apply a pre/post condition on an annotated element call.
     """
-
-    #: attribute name for pre condition
-    PRE_COND = 'pre_cond'
-
-    #: attribute name for post condition
-    POST_COND = 'post_cond'
-
-    __slots__ = (PRE_COND, POST_COND) + PrivateInterceptor.__slots__
 
     class ConditionError(Exception):
         """
@@ -49,6 +67,17 @@ class Condition(PrivateInterceptor):
 
         pass
 
+    #: pre condition attribute name
+    PRE_COND = 'pre_cond'
+
+    #: post condition attribute name
+    POST_COND = 'post_cond'
+
+    #: result attribute name
+    RESULT = 'result'
+
+    __slots__ = (PRE_COND, POST_COND) + PrivateInterceptor.__slots__
+
     def __init__(self, pre_cond=None, post_cond=None, *args, **kwargs):
         """
         :param pre_cond: function called before target call. Parameters
@@ -62,101 +91,49 @@ class Condition(PrivateInterceptor):
         self.pre_cond = pre_cond
         self.post_cond = post_cond
 
-    def _interception(self, annotation, advicesexecutor):
+    def _interception(self, joinpoint):
         """
-        Intercept call of advicesexecutor callee in doing pre/post conditions
+        Intercept call of joinpoint callee in doing pre/post conditions
         """
 
         if self.pre_cond is not None:
-            self.pre_cond(self, advicesexecutor)
+            self.pre_cond(joinpoint)
 
-        result = advicesexecutor.execute()
+        result = joinpoint.proceed()
 
         if self.post_cond is not None:
-            self.post_cond(self, result, advicesexecutor)
+            joinpoint.exec_ctx[Condition.RESULT] = result
+            self.post_cond(joinpoint)
 
         return result
 
 
-class ContextChecker(PrivateCallInterceptor):
+class AnnotationChecker(PrivateInterceptor):
+    """
+    Annotation dedicated to intercept annotation target binding.
+    """
+    __slots = PrivateCallInterceptor.__slots__
 
-    __slots__ = PrivateCallInterceptor.__slots__
+    #: bind_target pointcut
+    __BIND_TARGET__ = 'bind_target'
 
-    __CONTEXT_KEY__ = '__context_checker__'
+    def __init__(self, *args, **kwargs):
 
-    def __del__(self):
-        """
-        Free context memory.
-        """
-
-        super(ContextChecker, self).__del__()
-
-        # get context key and self class
-        context_key = ContextChecker.__CONTEXT_KEY__
-        self_class = self.__class__
-
-        # for all targets
-        for target in self.targets:
-
-            # get contexts
-            contexts = get_local_property(target, context_key)
-
-            # if not empty
-            if self_class in contexts:
-
-                # get context
-                context = contexts[self_class]
-
-                # free context if empty
-                if not context:
-                    del contexts[self_class]
-
-            # if contexts are empty, free them
-            if not contexts:
-                del_properties(target, context_key)
-
-    def _interception(self, annotation, advicesexecutor):
-
-        # get target, context_key and context
-        target = advicesexecutor.callee
-        context_key = ContextChecker.__CONTEXT_KEY__
-        context = setdefault(target, context_key, {})
-
-        # get self_class and context value
-        self_class = self.__class__
-        value = context.setdefault(self_class, {})
-
-        # check self on annotation, target and context value
-        self._check(annotation, target, value)
-
-        # run the advices executor
-        result = advicesexecutor.execute()
-
-        return result
-
-    def _check(self, annotation, target, value):
-        """
-        Update a context value during annotation binding.
-
-        :param Annotation annotation: annotation in binding to target
-        :param target: element during annotation
-        :param dict value: value to update
-        """
-
-        pass
+        super(AnnotationChecker, self).__init__(
+            pointcut=AnnotationChecker.__BIND_TARGET__, *args, **kwargs)
 
 
-class MaxCount(ContextChecker):
+class MaxCount(AnnotationChecker):
     """
     Set a maximum count of Interceptor instances per target.
     """
 
-    class MaxCountError(Exception):
+    class Error(Exception):
         pass
 
     __COUNT_KEY__ = 'count'
 
-    __slots__ = (__COUNT_KEY__, ) + ContextChecker.__slots__
+    __slots__ = (__COUNT_KEY__, ) + AnnotationChecker.__slots__
 
     def __init__(self, count=1, *args, **kwargs):
         """
@@ -167,30 +144,37 @@ class MaxCount(ContextChecker):
 
         self.count = count
 
-    def _check(self, annotation, target, value, *args, **kwargs):
+    def _interception(self, joinpoint):
 
-        super(MaxCount, self)._check(
-            annotation, target, value, *args, **kwargs)
+        target = joinpoint.kwargs['target']
+        annotation = joinpoint.kwargs['self']
 
-        count = value.setdefault(MaxCount.__COUNT_KEY__, self.count - 1)
+        annotation_class = annotation.__class__
+        annotations = annotation_class.get_annotations(target)
 
-        if count < 0:
-            raise MaxCount.MaxCountError()
+        if len(annotations) >= self.count:
+            raise MaxCount.Error(
+                '{0} calls of {1} on {2}'.format(
+                    self.count + 1, annotation, target))
+
+        result = joinpoint.proceed()
+
+        return result
 
 # apply MaxCount on itself
 MaxCount()(MaxCount)
 
 
 @MaxCount()
-class Target(ContextChecker):
+class Target(AnnotationChecker):
     """
     Check type of all decorated element decorated by this decorated Annotation.
     """
 
-    class TargetError(Exception):
+    class Error(Exception):
         pass
 
-    __TYPES_ALLOWED_PER_TARGET = {}
+    FUNC = FunctionType
 
     OR = 'or'
     AND = 'and'
@@ -198,7 +182,7 @@ class Target(ContextChecker):
     TYPES = 'types'
     RULE = 'rule'
 
-    __slots__ = (TYPES, RULE) + ContextChecker.__slots__
+    __slots__ = (TYPES, RULE) + PrivateCallInterceptor.__slots__
 
     def __init__(self, types, rule=OR, *args, **kwargs):
 
@@ -207,18 +191,16 @@ class Target(ContextChecker):
         self.types = ensureiterable(types)
         self.rule = rule
 
-    def _interception(self, annotation, advicesexecutor, *args, **kwargs):
-
-        result = super(Target, self)._interception(
-            annotation, advicesexecutor, *args, **kwargs)
+    def _interception(self, joinpoint):
 
         raiseException = self.rule == Target.OR
 
-        target = advicesexecutor.callee
+        target = joinpoint.kwargs['target']
+        annotation = joinpoint.kwargs['self']
 
         for _type in self.types:
 
-            if ((_type == type or _type == FunctionType) and isinstance(
+            if (_type in [type, FunctionType] and isinstance(
                     target, _type)) or issubclass(target, _type):
                 if self.rule == Target.OR:
                     raiseException = False
@@ -231,16 +213,16 @@ class Target(ContextChecker):
         if raiseException:
             Interceptor_type = type(annotation)
 
-            raise Target.TargetError(
+            raise Target.Error(
                 "{0} is not allowed by {1}. Must be {2} {3}".format(
                     target,
                     Interceptor_type,
                     'among' if self.rule == Target.OR else 'all',
                     self.types))
 
+        result = joinpoint.proceed()
+
         return result
 
-    def _check(self, annotation, target, value, *args, **kwargs):
-
-        value[Target.TYPES] = self.types
-        value[Target.RULE] = self.rule
+# ensure AnnotationChecker and MaxCount are dedicated to Annotation
+Target(Annotation)(AnnotationChecker)

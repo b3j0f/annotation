@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 # --------------------------------------------------------------------
@@ -24,6 +25,19 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-# extend b3j0f package with the annotation project
-from pkgutil import extend_path
-__path__ = extend_path(__path__, __name__)
+from os import system
+
+install = 'python ../setup.py install'
+clean = 'make clean'
+source = 'sphinx-apidoc -e -f -o sources ../b3j0f'
+html = 'make html'
+compress = 'cd _build/html; zip -r html .; cd -'
+
+# execute sequentially commands
+(
+    system(install)
+    or system(clean)
+    or system(source)
+    or system(html)
+    or system(compress)
+)

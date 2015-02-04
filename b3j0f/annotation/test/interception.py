@@ -1,11 +1,36 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# --------------------------------------------------------------------
+# The MIT License (MIT)
+#
+# Copyright (c) 2015 Jonathan Labéjof <jonathan.labejof@gmail.com>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+# --------------------------------------------------------------------
+
 from unittest import main
 
 from b3j0f.utils.ut import UTCase
 from b3j0f.annotation.interception import (
-    Interceptor, CallInterceptor, PrivateInterceptor, PrivateCallInterceptor
+    Interceptor, PrivateInterceptor,
+    PrivateCallInterceptor, CallInterceptor
 )
 
 
@@ -27,16 +52,16 @@ class InterceptorTest(UTCase):
         self.count = 0
 
         self.interceptor = self.get_interceptor()
-
+        print(self.interceptor)
         self.test_function = self.get_test_function()
-
+        print(self.test_function)
         self.interceptor(self.test_function)
 
-    def interception(self, interceptor, advicesexecutor):
+    def interception(self, joinpoint):
 
         self.count += 1
 
-        return advicesexecutor.execute()
+        return joinpoint.proceed()
 
     def tearDown(self):
         """
@@ -148,10 +173,10 @@ class PrivateInterceptorTest(InterceptorTest):
 
             self.utcase = utcase
 
-        def _interception(self, annotation, advicesexecutor):
+        def _interception(self, joinpoint):
 
             self.utcase.count += 1
-            return advicesexecutor.execute()
+            return joinpoint.proceed()
 
     def get_interceptor(self):
 
@@ -216,7 +241,7 @@ class CallInterceptorTest(InterceptorTest):
 
     def get_interceptor(self):
 
-        return CallInterceptor(self.interception)
+        return CallInterceptor(interception=self.interception)
 
     def get_test_function(self):
 
@@ -235,6 +260,7 @@ class CallInterceptorTest(InterceptorTest):
         """
         Test one annotation and two calls
         """
+
         self.test_function()
         self.test_function()
 
@@ -274,19 +300,18 @@ class PrivateCallInterceptorTest(InterceptorTest):
         def __init__(self, utcase):
 
             super(
-                PrivateCallInterceptorTest.TestCallInterceptor, self
+                PrivateCallInterceptorTest.TestCallInterceptor,
+                self
             ).__init__()
             self.utcase = utcase
 
-        def _interception(self, annotation, advicesexecutor):
-
+        def _interception(self, joinpoint):
             self.utcase.count += 1
-            return advicesexecutor.execute()
+            return joinpoint.proceed()
 
     class Test(object):
 
         def __call__(self):
-
             pass
 
     def get_interceptor(self):
