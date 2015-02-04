@@ -33,19 +33,18 @@ Such Annotation is close to the reflective paradigm in having himself its own
 
 Such Annotation:
 
-- can annotate any reflective object, from classes to class instances.
+- can annotate all python object, from classes to class instances.
 - have their own business behaviour.
 - are reusable to annotate several objects.
 - can propagate their annotation capability to class inheritance tree.
 
 .. limitations:
-    It is impossible to annotate None methods or not immutable types such as
-    dict or list.
+    It is impossible to annotate None methods.
 """
 
 __version__ = "0.1.0"
 
-__all__ = ('Annotation', 'StopPropagation')
+__all__ = ['Annotation', 'StopPropagation', 'RoutineAnnotation']
 
 from b3j0f.utils.property import (
     put_properties, del_properties, get_local_property, get_property
@@ -60,8 +59,8 @@ except ImportError:
 
 
 class Annotation(object):
-    """
-    Base class for all annotations defined in this library.
+    """Base class for all annotations defined in this library.
+
     It contains functions to override in order to catch initialisation
     of this Annotation and annotated elements binding
     (also called commonly target in the context of Annotation).
@@ -126,8 +125,7 @@ class Annotation(object):
         on_bind_target=None, propagate=True, override=False, ttl=None,
         in_memory=False
     ):
-        """
-        Default constructor with an 'on_bind_target' handler and propagate
+        """Default constructor with an 'on_bind_target' handler and propagate
         scope property.
 
         :param on_bind_target: (None) function to call when the annotation is
@@ -153,8 +151,7 @@ class Annotation(object):
         self.targets = set()
 
     def __call__(self, target):
-        """
-        Shouldn't be overriden by sub classes.
+        """Shouldn't be overriden by sub classes.
         """
 
         # bind target to self
@@ -163,8 +160,7 @@ class Annotation(object):
         return result
 
     def __del__(self):
-        """
-        Remove self to self.target annotations
+        """Remove self to self.target annotations.
         """
 
         try:
@@ -184,8 +180,7 @@ class Annotation(object):
 
     @property
     def ttl(self):
-        """
-        Get actual ttl in seconds
+        """Get actual ttl in seconds.
 
         :return: actual ttl
         :rtype: float
@@ -203,8 +198,7 @@ class Annotation(object):
 
     @ttl.setter
     def ttl(self, value):
-        """
-        Change self ttl with input value
+        """Change self ttl with input value.
 
         :param float value: new ttl in seconds
         """
@@ -249,8 +243,7 @@ class Annotation(object):
 
     @in_memory.setter
     def in_memory(self, value):
-        """
-        Add or remove self from global memory.
+        """Add or remove self from global memory.
 
         :param bool value: if True(False) ensure self is(is not) in memory
         """
@@ -269,8 +262,7 @@ class Annotation(object):
                     del memory[self_class]
 
     def bind_target(self, target):
-        """
-        Bind self annotation to target.
+        """Bind self annotation to target.
 
         :param target: target to annotate
         :return: bound target
@@ -285,8 +277,7 @@ class Annotation(object):
         return result
 
     def _bind_target(self, target):
-        """
-        Method to override in order to specialize binding of target
+        """Method to override in order to specialize binding of target.
 
         :param target: target to bind
         :return: bound target
@@ -318,8 +309,7 @@ class Annotation(object):
         return result
 
     def on_bind_target(self, target):
-        """
-        Fired after target is bound to self.
+        """Fired after target is bound to self.
 
         :param target: newly bound target
         """
@@ -330,8 +320,7 @@ class Annotation(object):
             _on_bind_target(self, target)
 
     def remove_from(self, target):
-        """
-        Remove self annotation from target annotations
+        """Remove self annotation from target annotations.
 
         :param target: target from where remove self annotation
         """
@@ -359,8 +348,7 @@ class Annotation(object):
 
     @classmethod
     def free_memory(annotation_type, exclude=None):
-        """
-        Free global annotation memory
+        """Free global annotation memory.
         """
 
         annotations_in_memory = Annotation.__ANNOTATIONS_IN_MEMORY__
@@ -377,8 +365,7 @@ class Annotation(object):
 
     @classmethod
     def get_memory_annotations(annotation_type, exclude=None):
-        """
-        Get annotations in memory which inherits from annotation_type.
+        """Get annotations in memory which inherits from annotation_type.
 
         :param tuple/type exclude: annotation type(s) to exclude from search
         :return: found annotations which inherits from annotation_type.
@@ -407,9 +394,9 @@ class Annotation(object):
 
     @classmethod
     def get_local_annotations(annotation_type, target, exclude=None):
-        """
-        Get a list of local target annotations in the order of their
+        """Get a list of local target annotations in the order of their
             definition.
+
         :param type annotation_type: type of annotation to get from target.
         :param target: target from where get annotations.
         :param tuple/type exclude: annotation types to exclude from selection.
@@ -445,8 +432,7 @@ class Annotation(object):
 
     @classmethod
     def remove(annotation_type, target, exclude=None):
-        """
-        Remove from target annotations which inherit from annotation_type
+        """Remove from target annotations which inherit from annotation_type
 
         :param target: target from where remove annotations which inherits from
             annotation_type.
@@ -523,8 +509,7 @@ class Annotation(object):
 
     @classmethod
     def get_annotated_fields(annotation_type, instance):
-        """
-        Get arrays of (annotated fields, annotations) by annotation_type of
+        """Get arrays of (annotated fields, annotations) by annotation_type of
             input instance.
 
         :return: a set of (annotated fields, annotations)
@@ -548,8 +533,7 @@ class Annotation(object):
 
 
 class StopPropagation(Annotation):
-    """
-    Stop propagation for annotation types.
+    """Stop propagation for annotation types.
     """
 
     ANNOTATION_TYPES = 'annotation_types'
@@ -557,8 +541,7 @@ class StopPropagation(Annotation):
     __slots__ = (ANNOTATION_TYPES,) + Annotation.__slots__
 
     def __init__(self, *annotation_types, **kwargs):
-        """
-        Define annotation types to not propagate at this level.
+        """Define annotation types to not propagate at this level.
         """
 
         super(StopPropagation, self).__init__(**kwargs)
@@ -567,8 +550,7 @@ class StopPropagation(Annotation):
 
 
 class RoutineAnnotation(Annotation):
-    """
-    Dedicated to add information on any routine, routine parameters or routine
+    """Dedicated to add information on any routine, routine parameters or routine
         result.
     """
 
