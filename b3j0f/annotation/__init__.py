@@ -153,7 +153,7 @@ class Annotation(object):
         """Shouldn't be overriden by sub classes.
 
         :param target: target to annotate.
-        :param ctx: target ctx.
+        :param ctx: target ctx if target is a method/function class/instance.
         :return: annotated element.
         """
 
