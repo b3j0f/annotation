@@ -41,6 +41,8 @@ from sys import stderr
 
 from time import sleep
 
+from functools import wraps
+
 __all__ = [
     'Types', 'types', 'Curried', 'curried', 'Retries'
 ]
@@ -250,18 +252,15 @@ def types(*args, **kwargs):
 
 
 class Curried(PrivateInterceptor):
-    """
-    Inspirated from Jeff Laughlin Consulting LLC projects.
-
-    Decorator that returns a function that keeps returning functions
+    """Annotation that returns a function that keeps returning functions
     until all arguments are supplied; then the original function is
     evaluated.
+
+    Inspirated from Jeff Laughlin Consulting LLC projects.
     """
 
     ARGS = 'args'  #: args attribute name
-
     KWARGS = 'kwargs'  #: kwargs attribute name
-
     DEFAULT_ARGS = 'default_args'  #: default args attribute name
     DEFAULT_KWARGS = 'default_kwargs'  #: default kwargs attribute name
 
@@ -270,17 +269,16 @@ class Curried(PrivateInterceptor):
     ) + PrivateInterceptor.__slots__
 
     class CurriedResult(object):
-        """
-        Curried result in case of missing arguments.
+        """Curried result in case of missing arguments.
         """
 
-        __slots__ = ('decorator', 'exception')
+        __slots__ = ('curried', 'exception')
 
-        def __init__(self, decorator, exception):
+        def __init__(self, curried, exception):
 
             super(Curried.CurriedResult, self).__init__()
 
-            self.decorator = decorator
+            self.curried = curried
             self.exception = exception
 
     def __init__(self, varargs=(), keywords={}, *args, **kwargs):
@@ -290,11 +288,23 @@ class Curried(PrivateInterceptor):
         self.args = self.default_args = varargs
         self.kwargs = self.default_kwargs = keywords
 
+    def _bind_target(self, target, *args, **kwargs):
+
+        @wraps(target)
+        def f(*args, **kwargs):
+            return target(*args, **kwargs)
+
+        result = super(Curried, self)._bind_target(
+            target=f, *args, **kwargs
+        )
+
+        return result
+
     def _interception(self, joinpoint, *args, **kwargs):
 
         result = None
 
-        target = joinpoint.kwargs['target']
+        target = joinpoint.target
 
         args = joinpoint.args
         kwargs = joinpoint.kwargs
@@ -305,15 +315,12 @@ class Curried(PrivateInterceptor):
         try:
             # check if all arguments are given
             getcallargs(target, *self.args, **self.kwargs)
-        except TypeError as te:
-            # in case of problem, returns curried decorater and exception
-            result = Curried.CurriedResult(self, te)
-
-        if result is None:
-            # call joinpoint with all arguments
             joinpoint.args = self.args
             joinpoint.kwargs = self.kwargs
             result = joinpoint.proceed()
+        except TypeError as te:
+            # in case of problem, returns curried decorater and exception
+            result = Curried.CurriedResult(self, te)
 
         return result
 

@@ -201,19 +201,19 @@ class CallTests(UTCase):
 
         @Curried()
         def a(b, c=None):
-            pass
+            return 2
 
         result = a()
 
         self.assertTrue(isinstance(result, Curried.CurriedResult))
 
-        self.assertIsNone(a(None))
+        self.assertEqual(a(None), 2)
 
-        result.decorator.args = []
+        result.curried.args = []
 
-        self.assertIsNone(a(b=None))
+        self.assertEqual(a(b=None), 2)
 
-        self.assertIsNone(a(b=None, c=None))
+        self.assertEqual(a(b=None, c=None), 2)
 
         self.assertTrue(isinstance(a(None), Curried.CurriedResult))
 
