@@ -366,7 +366,7 @@ class Annotation(object):
 
         exclude = () if exclude is None else exclude
 
-        for annotation_cls in annotations_in_memory.keys():
+        for annotation_cls in list(annotations_in_memory.keys()):
 
             if issubclass(annotation_cls, exclude):
                 continue
