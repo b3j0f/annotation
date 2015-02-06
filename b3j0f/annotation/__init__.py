@@ -77,8 +77,8 @@ class Annotation(object):
         all sub target elements.
     - override: (default False) exclude previous annotation of the same type as
         self class.
-    - ttl: (default None) self time to leave.
-    - in_memory: (default False) save instance in a global dictionary.
+    - _ttl: (default None) self time to leave.
+    - _in_memory: (default False) save instance in a global dictionary.
 
     It is also possible to set on_bind_target, propagate and override in
         the constructor.
@@ -100,10 +100,10 @@ class Annotation(object):
     OVERRIDE = 'override'
 
     #: attribute name for annotation ttl
-    TTL = 'ttl'
+    TTL = '_ttl'
 
     #: attribute name for in_memory
-    IN_MEMORY = 'in_memory'
+    IN_MEMORY = '_in_memory'
 
     #: attribute name for self ts
     __TS = '_ts'
@@ -144,8 +144,8 @@ class Annotation(object):
         # set attributes
         setattr(self, Annotation.PROPAGATE, propagate)
         setattr(self, Annotation.OVERRIDE, override)
-        setattr(self, Annotation.TTL, ttl)
-        setattr(self, Annotation.IN_MEMORY, in_memory)
+        self.ttl = ttl
+        self.in_memory = in_memory
 
         self.targets = set()
 
