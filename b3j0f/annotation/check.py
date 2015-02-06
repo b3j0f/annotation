@@ -37,9 +37,7 @@ from types import FunctionType
 
 from inspect import isclass
 
-__all__ = [
-    'Condition', 'MaxCount', 'Target'
-]
+__all__ = ['Condition', 'MaxCount', 'Target']
 
 
 class Condition(PrivateInterceptor):
@@ -219,7 +217,9 @@ class Target(AnnotationChecker):
         annotation = joinpoint.kwargs['self']
 
         for _type in self.types:
-            if ((_type == type and isclass(target))
+            if ((_type == Target.FUNC and isinstance(target, Target.FUNC))
+                or
+                (_type == type and isclass(target))
                 or
                 (_type is callable and callable(target))
                 or
