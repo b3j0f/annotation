@@ -40,7 +40,7 @@ dependencies = ['b3j0f.aop', 'b3j0f.utils']
 
 keywords = [
     'annotation', 'decorator', 'type', 'check', 'async', 'interceptor', 'oop',
-    'call'
+    'call', 'mixin', 'transform', 'curried', 'retries', 'deprecated'
 ]
 
 setup(
