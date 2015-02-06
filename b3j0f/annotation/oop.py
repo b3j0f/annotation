@@ -82,12 +82,11 @@ class Transform(Annotation):
 
             name = target.__name__ if self.name is None else self.name
             # if update is True, update target properties
+            bases = tuple(set((target,) + self.bases))
             if self.update:
-                bases = tuple(set(target.__bases__ + self.bases))
                 dict = target.__dict__.copy()
                 dict.update(self.dict)
             else:  # else use new properties
-                bases = self.bases
                 dict = self.dict
             # get the new type related to name, bases and dict
             result = type(name, bases, dict)
@@ -366,19 +365,26 @@ class MethodMixin(Annotation):
 
         self.function = function
 
-    def _bind_target(self, target, *args, **kwargs):
+    def _bind_target(self, target, ctx, *args, **kwargs):
 
-        result = super(MethodMixin, self)._bind_target(target, *args, **kwargs)
+        result = super(MethodMixin, self)._bind_target(
+            target=target, ctx=ctx, *args, **kwargs
+        )
 
         if ismethod(result):
             cls = target.im_class
             name = target.__name__
             Mixin.mixin_function_or_method(cls, self.function, name)
-
-            return target
+            result = target
 
         else:
-            return self.function
+            if ctx is not None:
+                cls = ctx
+                name = target.__name__
+                Mixin.mixin_function_or_method(cls, self.function, name)
+            result = self.function
+
+        return result
 
 
 class Deprecated(PrivateInterceptor):
