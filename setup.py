@@ -29,8 +29,6 @@ from setuptools import setup, find_packages
 
 from os.path import abspath, dirname, join
 
-from functools import reduce
-
 # get setup directory abspath
 _path = dirname(abspath(__file__))
 
@@ -75,5 +73,5 @@ setup(
         "Programming Language :: Python :: 3.4"
     ],
     test_suite='b3j0f',
-    keywords=reduce(lambda x, y: '{0} {1}'.format(x, y), keywords)
+    keywords=keywords
 )

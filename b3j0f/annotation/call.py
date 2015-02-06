@@ -238,8 +238,9 @@ class Types(PrivateInterceptor):
 
 
 def types(*args, **kwargs):
-    """
-    Quick alias for the Types Annotation with only args and kwargs parameters.
+    """Quick alias for the Types Annotation with only args and kwargs
+    parameters.
+
     args may contain rtype and kwargs is ptypes.
     """
 
@@ -315,8 +316,7 @@ class Curried(PrivateInterceptor):
 
 
 def curried(*args, **kwargs):
-    """
-    Curried annotation with varargs and kwargs
+    """Curried annotation with varargs and kwargs.
     """
 
     return Curried(varargs=args, keywords=kwargs)

@@ -39,8 +39,8 @@ from warnings import warn_explicit
 
 
 class MixIn(Annotation):
-    """
-    Annotation which enrichs a target with MixIn.
+    """Annotation which enrichs a target with MixIn.
+
     For every defined mixin, a private couple of (name, array of mixed items)
     is created into the target in order to go back in a no mixin state.
     """
@@ -52,14 +52,10 @@ class MixIn(Annotation):
 
         pass
 
-    """
-    key to organize a dictionary of mixed elements by name in targets.
-    """
+    #: key to organize a dictionary of mixed elements by name in targets.
     __MIXEDIN_KEY__ = '__MIXEDIN__'
 
-    """
-    Key to identify if a mixin add or replace a content.
-    """
+    #: Key to identify if a mixin add or replace a content.
     __NEW_CONTENT_KEY__ = '__NEW_CONTENT__'
 
     def __init__(self, classes=tuple(), *attributes, **named_attributes):
@@ -85,8 +81,7 @@ class MixIn(Annotation):
 
     @staticmethod
     def mixin_class(target, cls):
-        """
-        Mix cls content in target.
+        """Mix cls content in target.
         """
 
         for name, field in getmembers(cls):
@@ -96,11 +91,11 @@ class MixIn(Annotation):
     def mixin_function_or_method(
         target, fm, name=None, bound_method=False
     ):
-        """
-        Mixin a function or a method into the target.
+        """Mixin a function or a method into the target.
+
         If name is not given, then the fm name is used.
-        If bound method is True (False by default),
-        the mixin result is a bound method to target.
+        If bound method is True (False by default), the mixin result is a bound
+        method to target.
         """
 
         function = None
@@ -129,11 +124,12 @@ class MixIn(Annotation):
 
     @staticmethod
     def mixin(target, resource, name=None):
-        """
-        Do the correct mixin depending on the type of input resource.
+        """Do the correct mixin depending on the type of input resource.
+
         - Method or Function: mixin_function_or_method.
         - class: mixin_class.
         - other: set_mixin.
+
         And returns the result of the choosen method (one or a list of mixins).
         """
 
@@ -156,8 +152,7 @@ class MixIn(Annotation):
 
     @staticmethod
     def get_mixedins_by_name(target):
-        """
-        Get a set of couple (name, field) of target mixedin.
+        """Get a set of couple (name, field) of target mixedin.
         """
 
         result = getattr(target, MixIn.__MIXEDIN_KEY__, None)
@@ -170,9 +165,9 @@ class MixIn(Annotation):
 
     @staticmethod
     def set_mixin(target, resource, name=None, override=True):
-        """
-        Set a resource and returns the mixed one in target content or
+        """Set a resource and returns the mixed one in target content or
         MixIn.__NEW_CONTENT_KEY__ if resource name didn't exist in target.
+
         The optional input property name designates the target content item
         to mix with the resource.
         The override parameter (True by default) permits to replace an old
@@ -216,9 +211,9 @@ class MixIn(Annotation):
 
     @staticmethod
     def remove_mixin(target, name, mixedin=None, set=True):
-        """
-        Remove a mixin with name (and reference) from target
-        and returns the replaced one or None.
+        """Remove a mixin with name (and reference) from targetand returns the
+        replaced one or None.
+
         The mixedin parameter designates a mixedin value or the last defined
         mixedin if is None (default).
         If set is True (default), the removed mixedin replaces
@@ -276,8 +271,7 @@ class MixIn(Annotation):
 
     @staticmethod
     def remove_all_mixins(target, name=None):
-        """
-        Tries to get back target in a no mixin consistent state.
+        """Tries to get back target in a no mixin consistent state.
         If name is given, then all mixin related to input name may be removed.
         """
 
@@ -293,8 +287,7 @@ class MixIn(Annotation):
 
 
 class MethodMixIn(Annotation):
-    """
-    Apply a mixin on a method.
+    """Apply a mixin on a method.
     """
 
     def __init__(self, function, *args, **kwargs):
@@ -319,11 +312,9 @@ class MethodMixIn(Annotation):
 
 
 class Deprecated(PrivateInterceptor):
-    '''
-    Decorator which can be used to mark functions
-    as deprecated. It will result in a warning being emitted
-    when the function is used.
-    '''
+    """Decorator which can be used to mark functions as deprecated. It will
+    result in a warning being emitted when the function is used.
+    """
 
     def _interception(self, annotation, advicesexecutor):
 
@@ -339,8 +330,8 @@ class Deprecated(PrivateInterceptor):
 
 
 class Singleton(Annotation):
-    """
-    Transforms cls into a singleton.
+    """Transforms cls into a singleton.
+
     Reference to cls, or to any instance is the same reference.
     """
 

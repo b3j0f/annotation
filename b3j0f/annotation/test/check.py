@@ -29,211 +29,270 @@ from unittest import main
 
 from b3j0f.utils.ut import UTCase
 from b3j0f.annotation import Annotation
-from b3j0f.annotation.check import Condition, MaxCount, Target
+from b3j0f.annotation.check import (
+    Condition, MaxCount, Target, AnnotationChecker
+)
+
+from random import randint
 
 
 class ConditionTest(UTCase):
-
+    """Test the Condition annotation.
+    """
     def setUp(self):
 
-        self.condition = Condition()
+        self.pre_count = 0
+        self.post_count = 0
+        self.condition = Condition(
+            pre_cond=self.pre_cond, post_cond=self.post_cond
+        )
         self.condition(self._test)
 
-    def _test(self, **kwargs):
-
-        return kwargs.get('a')
-
-
-class PreConditionTest(ConditionTest):
-
-    def setUp(self):
-
-        super(PreConditionTest, self).setUp()
-
-        self.condition.pre_cond = self.pre_cond
-
     def pre_cond(self, joinpoint):
-        """
-        Precondition which fails if kwargs in joinpoint
-        """
 
-        if 'a' in joinpoint.kwargs:
-            raise Exception()
-
-    def test_success(self):
-
-        self._test()
-
-    def test_failure(self):
-
-        self.assertRaises(Exception, self._test, a=1)
-
-
-class PostConditionTest(ConditionTest):
-
-    def setUp(self):
-
-        super(PostConditionTest, self).setUp()
-
-        self.condition.post_cond = self.post_cond
+        self.pre_count += 1
 
     def post_cond(self, joinpoint):
+
+        self.post_count += 1
+
+    def tearDown(self):
+
+        self.condition.__del__()
+        del self.condition
+
+    def _test(self, **kwargs):
+        """Test method which is intercepted by this condition.
         """
-        Post condition which fails if result is True
+
+        return self
+
+    def test_pre(self):
+        """Test pre condition checking.
         """
 
-        if joinpoint.exec_ctx[Condition.RESULT]:
-            raise Exception()
-
-    def test_success(self):
-
-        self._test()
-
-    def test_failure(self):
-
-        self.assertRaises(Exception, self._test, a=True)
+        self.assertEqual(self.pre_count, 0)
+        self.assertEqual(self.post_count, 0)
+        result = self._test()
+        self.assertEqual(self.pre_count, 1)
+        self.assertEqual(self.post_count, 1)
+        self.assertEqual(result, self)
 
 
-class ContextCheckerTest(UTCase):
-    """
-    Test ContextChecker
+class AnnotationCheckerTest(UTCase):
+    """Test AnnotationChecker.
     """
 
-    pass
+    class TestAnnotationChecker(AnnotationChecker):
+
+        def __init__(self, utcase, *args, **kwargs):
+
+            super(AnnotationCheckerTest.TestAnnotationChecker, self).__init__(
+                *args, **kwargs
+            )
+            self.utcase = utcase
+
+        def _interception(self, joinpoint, *args, **kwargs):
+
+            self.utcase.count += 1
+
+            return joinpoint.proceed()
+
+    def setUp(self):
+
+        self.count = 0
+        self.annotation = AnnotationCheckerTest.TestAnnotationChecker(self)
+
+    def tearDown(self):
+
+        self.annotation.__del__()
+        del self.annotation
+
+    def test_annotation_class(self):
+        """Test to annotate an annotation class.
+        """
+
+        self.annotation(Annotation)
+        annotation = Annotation()
+        annotation(Annotation)
+        annotation.__del__()
+        self.assertEqual(self.count, 1)
+
+    def test_not_Annotation(self):
+        """Test to annotate an object which is not an annotation.
+        """
+
+        self.assertRaises(Target.Error, self.annotation, self)
 
 
-class CheckTests(UTCase):
+class MaxCountTest(UTCase):
+    """Test MaxCount annotation.
+    """
 
-    def test_class(self):
+    def _assertMaxCount(self, count=MaxCount.DEFAULT_COUNT):
 
-        class Test(object):
+        @MaxCount(count)
+        class Test(Annotation):
             pass
 
-        MaxCount()(Test)
-        self.assertRaises(MaxCount.Error, MaxCount().__call__, Test)
+        # weave count time test on None
+        for i in range(count):
+            Test()(None)
 
-    def test_function(self):
+        # check if next weaving raise an Exception
+        self.assertRaises(MaxCount.Error, Test(), None)
 
+    def test_default(self):
+        """Test default count.
+        """
+
+        self._assertMaxCount()
+
+    def test_one(self):
+        """Test one count.
+        """
+
+        self._assertMaxCount(1)
+
+    def test_more_than_one(self):
+        """Test > 1 count.
+        """
+
+        self._assertMaxCount(randint(2, 5))
+
+
+class TargetTest(UTCase):
+    """Test Target Annotation.
+    """
+
+    def test_class(self):
+        """Test to use type such as types.
+        """
+
+        @Target(type)
+        class Test(Annotation):
+            pass
+
+        # check to weave on a class
+        @Test()
+        class TestClassBis(object):
+            pass
+
+        # check to weave on a namespace
+        @Test()
+        class TestNSBis():
+            pass
+
+        # check to fail on a lambda expression
+        self.assertRaises(Target.Error, Test(), lambda x: None)
+
+    def test_callable(self):
+        """Test the type callable.
+        """
+
+        @Target(callable)
+        class Test(Annotation):
+            pass
+
+        @Test()
         def test():
             pass
 
-        MaxCount()(test)
-        self.assertRaises(MaxCount.Error, MaxCount(), test)
-
-        @MaxCount(2)
-        class Test2(Annotation):
-            pass
-
-        @Test2()
-        @Test2()
-        def c():
-            pass
-
-        try:
-            @Test2()
-            @Test2()
-            @Test2()
-            def d():
+        @Test()
+        class TestClass:
+            def __call__(self):
                 pass
-        except Exception as e:
-            pass
 
-        self.assertIsNotNone(e)
+        testInstance = TestClass()
 
-    def testTarget(self):
+        Test()(testInstance)
 
-        @Target(type)
-        class A(Annotation):
-            pass
+        del TestClass.__call__
+        testInstance = TestClass()
 
-        e = None
+        self.assertRaises(Target.Error, Test(), testInstance)
 
-        try:
-            @A()
-            def a():
-                pass
-        except Exception as e:
-            pass
-
-        self.assertIsNotNone(e)
-
-        e = None
-
-        @A()
-        class CA(object):
-            pass
+    def test_function(self):
+        """Test the type function.
+        """
 
         @Target(Target.FUNC)
-        class B(Annotation):
+        class Test(Annotation):
             pass
 
-        @B()
-        def b():
+        @Test()
+        def test():
             pass
 
-        try:
-            @B()
-            class CB(object):
-                pass
-        except Exception as e:
+        class TestClass:
             pass
 
-        self.assertIsNotNone(e)
+        self.assertRaises(Target.Error, Test(), TestClass)
 
-        e = None
+    def test_multitypes(self):
+        """Test multi types.
+        """
 
-        @Target(CheckTests)
-        class C(Annotation):
+        class TestA:
             pass
 
-        try:
-            @C()
-            def c():
-                pass
-        except Exception as e:
+        class TestB:
             pass
 
-        self.assertIsNotNone(e)
-
-        e = None
-
-        @C()
-        class CC(CheckTests):
+        class TestAB(TestA, TestB):
             pass
 
-        @Target([MaxCount, Target], rule=Target.AND)
-        class D(Annotation):
+        @Target([TestA, TestB])
+        class Test(Annotation):
             pass
 
-        @D()
-        class DD(MaxCount, Target):
+        # check types
+        Test()(TestA)
+        Test()(TestB)
+        Test()(TestAB)
+        # check instances is not checked
+        self.assertRaises(Target.Error, Test(), TestA())
+        self.assertRaises(Target.Error, Test(), TestB())
+        self.assertRaises(Target.Error, Test(), TestAB())
+
+        @Target([TestA, TestB], instances=True)
+        class Test(Annotation):
             pass
 
-        try:
-            @D()
-            class DDD(MaxCount):
-                pass
-        except Exception as e:
+        # check types
+        Test()(TestA)
+        Test()(TestB)
+        Test()(TestAB)
+        # check instances
+        Test()(TestA())
+        Test()(TestB())
+        Test()(TestAB())
+
+        @Target([TestA, TestB], rule=Target.AND)
+        class Test(Annotation):
             pass
 
-        self.assertIsNotNone(e)
+        # check types
+        self.assertRaises(Target.Error, Test(), TestA)
+        self.assertRaises(Target.Error, Test(), TestB)
+        Test()(TestAB)
+        # check instances is not checked
+        self.assertRaises(Target.Error, Test(), TestA())
+        self.assertRaises(Target.Error, Test(), TestB())
+        self.assertRaises(Target.Error, Test(), TestAB())
 
-        @Target([MaxCount, str], rule=Target.OR)
-        class D(Annotation):
+        @Target([TestA, TestB], rule=Target.AND, instances=True)
+        class Test(Annotation):
             pass
 
-        @D()
-        class EE(MaxCount):
-            pass
-
-        try:
-            @D()
-            class EEE(object):
-                pass
-        except Exception as e:
-            pass
-
-        self.assertIsNotNone(e)
+        # check types
+        self.assertRaises(Target.Error, Test(), TestA)
+        self.assertRaises(Target.Error, Test(), TestB)
+        Test()(TestAB)
+        # check instances is not checked
+        self.assertRaises(Target.Error, Test(), TestA())
+        self.assertRaises(Target.Error, Test(), TestB())
+        Test()(TestAB())
 
 
 if __name__ == '__main__':

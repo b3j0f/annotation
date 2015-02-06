@@ -24,8 +24,7 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-"""
-Interceptors dedicated to decorate decorations.
+"""Interceptors dedicated to decorate decorations.
 """
 
 from b3j0f.annotation import Annotation
@@ -35,6 +34,8 @@ from b3j0f.annotation.interception import (
 from b3j0f.utils.iterable import ensureiterable
 
 from types import FunctionType
+
+from inspect import isclass
 
 __all__ = [
     'Condition', 'MaxCount', 'Target'
@@ -91,9 +92,8 @@ class Condition(PrivateInterceptor):
         self.pre_cond = pre_cond
         self.post_cond = post_cond
 
-    def _interception(self, joinpoint):
-        """
-        Intercept call of joinpoint callee in doing pre/post conditions
+    def _interception(self, joinpoint, *args, **kwargs):
+        """Intercept call of joinpoint callee in doing pre/post conditions.
         """
 
         if self.pre_cond is not None:
@@ -109,8 +109,7 @@ class Condition(PrivateInterceptor):
 
 
 class AnnotationChecker(PrivateInterceptor):
-    """
-    Annotation dedicated to intercept annotation target binding.
+    """Annotation dedicated to intercept annotation target binding.
     """
     __slots = PrivateCallInterceptor.__slots__
 
@@ -120,12 +119,12 @@ class AnnotationChecker(PrivateInterceptor):
     def __init__(self, *args, **kwargs):
 
         super(AnnotationChecker, self).__init__(
-            pointcut=AnnotationChecker.__BIND_TARGET__, *args, **kwargs)
+            pointcut=AnnotationChecker.__BIND_TARGET__, *args, **kwargs
+        )
 
 
 class MaxCount(AnnotationChecker):
-    """
-    Set a maximum count of Interceptor instances per target.
+    """Set a maximum count of target instantiation by annotated element.
     """
 
     class Error(Exception):
@@ -133,18 +132,20 @@ class MaxCount(AnnotationChecker):
 
     __COUNT_KEY__ = 'count'
 
+    DEFAULT_COUNT = 1
+
     __slots__ = (__COUNT_KEY__, ) + AnnotationChecker.__slots__
 
-    def __init__(self, count=1, *args, **kwargs):
+    def __init__(self, count=DEFAULT_COUNT, *args, **kwargs):
         """
-        Count of annotation/object call
+        :param int count: maximal target instanciation by annotated element.
         """
 
         super(MaxCount, self).__init__(*args, **kwargs)
 
-        self.count = count
+        self.count = MaxCount.DEFAULT_COUNT if count is None else count
 
-    def _interception(self, joinpoint):
+    def _interception(self, joinpoint, *args, **kwargs):
 
         target = joinpoint.kwargs['target']
         annotation = joinpoint.kwargs['self']
@@ -155,7 +156,8 @@ class MaxCount(AnnotationChecker):
         if len(annotations) >= self.count:
             raise MaxCount.Error(
                 '{0} calls of {1} on {2}'.format(
-                    self.count + 1, annotation, target))
+                    self.count + 1, annotation, target)
+            )
 
         result = joinpoint.proceed()
 
@@ -167,31 +169,49 @@ MaxCount()(MaxCount)
 
 @MaxCount()
 class Target(AnnotationChecker):
-    """
-    Check type of all decorated element decorated by this decorated Annotation.
+    """Check type of all decorated elements by this decorated Annotation in
+    using a list of types.
+
+    This list of types is checked related to logical rules such as OR and AND.
+
+    - OR: true if at least one type is checked.
+    - AND: true if all types are checked.
     """
 
     class Error(Exception):
         pass
 
-    FUNC = FunctionType
+    FUNC = FunctionType  #: function type
+    CALLABLE = callable  #: callable type
 
-    OR = 'or'
-    AND = 'and'
+    OR = 'or'  #: or rule
+    AND = 'and'  #: and rule
+
+    DEFAULT_RULE = OR  #: default rule
+    DEFAULT_INSTANCES = False  #: default instances condition
 
     TYPES = 'types'
     RULE = 'rule'
+    INSTANCES = 'instances'
 
-    __slots__ = (TYPES, RULE) + PrivateCallInterceptor.__slots__
+    __slots__ = (TYPES, RULE, INSTANCES) + PrivateCallInterceptor.__slots__
 
-    def __init__(self, types, rule=OR, *args, **kwargs):
-
+    def __init__(
+        self, types=None, rule=DEFAULT_RULE, instances=False, *args, **kwargs
+    ):
+        """
+        :param types: type(s) to check. The function ``callable`` can be used.
+        :type types: type or list
+        :param str rule: set condition on input types.
+        :param bool instances: if True, check types such and instance types.
+        """
         super(Target, self).__init__(*args, **kwargs)
 
-        self.types = ensureiterable(types)
+        self.types = () if types is None else ensureiterable(types)
         self.rule = rule
+        self.instances = instances
 
-    def _interception(self, joinpoint):
+    def _interception(self, joinpoint, *args, **kwargs):
 
         raiseException = self.rule == Target.OR
 
@@ -199,9 +219,13 @@ class Target(AnnotationChecker):
         annotation = joinpoint.kwargs['self']
 
         for _type in self.types:
-
-            if (_type in [type, FunctionType] and isinstance(
-                    target, _type)) or issubclass(target, _type):
+            if ((_type == type and isclass(target))
+                or
+                (_type is callable and callable(target))
+                or
+                (_type is not callable
+                    and ((isclass(target) and issubclass(target, _type))
+                    or (self.instances and isinstance(target, _type))))):
                 if self.rule == Target.OR:
                     raiseException = False
                     break
@@ -218,11 +242,12 @@ class Target(AnnotationChecker):
                     target,
                     Interceptor_type,
                     'among' if self.rule == Target.OR else 'all',
-                    self.types))
+                    self.types)
+            )
 
         result = joinpoint.proceed()
 
         return result
 
-# ensure AnnotationChecker and MaxCount are dedicated to Annotation
+# ensure AnnotationChecker is dedicated to Annotation
 Target(Annotation)(AnnotationChecker)
