@@ -77,8 +77,8 @@ class Annotation(object):
         all sub target elements.
     - override: (default False) exclude previous annotation of the same type as
         self class.
-    - ttl: (default None) self time to leave.
-    - in_memory: (default False) save instance in a global dictionary.
+    - _ttl: (default None) self time to leave.
+    - _in_memory: (default False) save instance in a global dictionary.
 
     It is also possible to set on_bind_target, propagate and override in
         the constructor.
@@ -100,10 +100,10 @@ class Annotation(object):
     OVERRIDE = 'override'
 
     #: attribute name for annotation ttl
-    TTL = 'ttl'
+    TTL = '_ttl'
 
     #: attribute name for in_memory
-    IN_MEMORY = 'in_memory'
+    IN_MEMORY = '_in_memory'
 
     #: attribute name for self ts
     __TS = '_ts'
@@ -144,8 +144,8 @@ class Annotation(object):
         # set attributes
         setattr(self, Annotation.PROPAGATE, propagate)
         setattr(self, Annotation.OVERRIDE, override)
-        setattr(self, Annotation.TTL, ttl)
-        setattr(self, Annotation.IN_MEMORY, in_memory)
+        self.ttl = ttl
+        self.in_memory = in_memory
 
         self.targets = set()
 
@@ -153,7 +153,7 @@ class Annotation(object):
         """Shouldn't be overriden by sub classes.
 
         :param target: target to annotate.
-        :param ctx: target ctx.
+        :param ctx: target ctx if target is a method/function class/instance.
         :return: annotated element.
         """
 
@@ -297,7 +297,7 @@ class Annotation(object):
         try:
             # get annotations from target if exists.
             local_annotations = get_local_property(
-                target, Annotation.__ANNOTATIONS_KEY__, []
+                target, Annotation.__ANNOTATIONS_KEY__, [], ctx=ctx
             )
         except TypeError:
             raise TypeError('target {0} must be hashable.'.format(target))
@@ -306,7 +306,8 @@ class Annotation(object):
         if not local_annotations:
             put_properties(
                 target,
-                properties={Annotation.__ANNOTATIONS_KEY__: local_annotations}
+                properties={Annotation.__ANNOTATIONS_KEY__: local_annotations},
+                ctx=ctx
             )
 
         # insert self at first position
@@ -366,7 +367,7 @@ class Annotation(object):
 
         exclude = () if exclude is None else exclude
 
-        for annotation_cls in annotations_in_memory.keys():
+        for annotation_cls in list(annotations_in_memory.keys()):
 
             if issubclass(annotation_cls, exclude):
                 continue
@@ -539,8 +540,11 @@ class Annotation(object):
                 annotations = annotation_type.get_annotations(field)
             except TypeError:
                 continue
-            if annotations:
-                result[field] = annotations
+            try:
+                if annotations:
+                    result[field] = annotations
+            except TypeError:  # if field is an object proxy
+                pass
 
         return result
 
