@@ -297,7 +297,7 @@ class Annotation(object):
         try:
             # get annotations from target if exists.
             local_annotations = get_local_property(
-                target, Annotation.__ANNOTATIONS_KEY__, []
+                target, Annotation.__ANNOTATIONS_KEY__, [], ctx=ctx
             )
         except TypeError:
             raise TypeError('target {0} must be hashable.'.format(target))
@@ -306,7 +306,8 @@ class Annotation(object):
         if not local_annotations:
             put_properties(
                 target,
-                properties={Annotation.__ANNOTATIONS_KEY__: local_annotations}
+                properties={Annotation.__ANNOTATIONS_KEY__: local_annotations},
+                ctx=ctx
             )
 
         # insert self at first position
@@ -539,8 +540,11 @@ class Annotation(object):
                 annotations = annotation_type.get_annotations(field)
             except TypeError:
                 continue
-            if annotations:
-                result[field] = annotations
+            try:
+                if annotations:
+                    result[field] = annotations
+            except TypeError:  # if field is an object proxy
+                pass
 
         return result
 
