@@ -400,7 +400,7 @@ class Retries(PrivateInterceptor):
         result = None
 
         mydelay = self.delay
-        tries = range(self.max_tries)
+        tries = list(range(self.max_tries))
         tries.reverse()
 
         for tries_remaining in tries:

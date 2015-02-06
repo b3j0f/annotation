@@ -138,12 +138,11 @@ class OOPTests(UTCase):
 
     def testMethodMixIn(self):
 
-        def plop(self):
+        def test(self):
             return None
 
         class MixedInClass(object):
-
-            @MethodMixin(plop)
+            @MethodMixin(test)
             def get_1(self):
                 return 1
 
@@ -154,17 +153,16 @@ class OOPTests(UTCase):
         self.assertIsNone(mixedInstance.get_1())
 
         class MixedInClass(object):
-
             def get_1(self):
                 return 1
 
-        MethodMixin(plop)(MixedInClass.get_1)
+        MethodMixin(test)(MixedInClass.get_1, ctx=MixedInClass)
 
         self.assertTrue(hasattr(MixedInClass, 'get_1'))
 
         mixedInstance = MixedInClass()
 
-        self.assertEqual(mixedInstance.get_1(), None)
+        self.assertIsNone(mixedInstance.get_1())
 
         Mixin.remove_all_mixins(MixedInClass)
 

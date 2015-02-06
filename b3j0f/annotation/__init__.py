@@ -24,8 +24,7 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-"""
-This module defines the Annotation class.
+"""This module defines the Annotation class.
 
 Such Annotation is close to the reflective paradigm in having himself its own
     lifecycle independently from its annotated elements (called commonly
@@ -49,8 +48,6 @@ __all__ = ['Annotation', 'StopPropagation', 'RoutineAnnotation']
 from b3j0f.utils.property import (
     put_properties, del_properties, get_local_property, get_property
 )
-
-from inspect import isclass
 
 from time import time
 
@@ -152,12 +149,16 @@ class Annotation(object):
 
         self.targets = set()
 
-    def __call__(self, target):
+    def __call__(self, target, ctx=None):
         """Shouldn't be overriden by sub classes.
+
+        :param target: target to annotate.
+        :param ctx: target ctx.
+        :return: annotated element.
         """
 
         # bind target to self
-        result = self.bind_target(target)
+        result = self.bind_target(target=target, ctx=ctx)
 
         return result
 
@@ -267,26 +268,28 @@ class Annotation(object):
                 if not annotations_memory:
                     del memory[self_class]
 
-    def bind_target(self, target):
+    def bind_target(self, target, ctx=None):
         """Bind self annotation to target.
 
-        :param target: target to annotate
-        :return: bound target
+        :param target: target to annotate.
+        :param ctx: target ctx.
+        :return: bound target.
         """
 
         # process self _bind_target
-        result = self._bind_target(target)
+        result = self._bind_target(target=target, ctx=ctx)
 
         # fire on bind target event
-        self.on_bind_target(target)
+        self.on_bind_target(target=target, ctx=ctx)
 
         return result
 
-    def _bind_target(self, target):
+    def _bind_target(self, target, ctx=None):
         """Method to override in order to specialize binding of target.
 
         :param target: target to bind
-        :return: bound target
+        :param ctx: target ctx.
+        :return: bound target.
         """
 
         result = target
@@ -314,21 +317,23 @@ class Annotation(object):
 
         return result
 
-    def on_bind_target(self, target):
+    def on_bind_target(self, target, ctx=None):
         """Fired after target is bound to self.
 
-        :param target: newly bound target
+        :param target: newly bound target.
+        :param ctx: target ctx.
         """
 
         _on_bind_target = getattr(self, Annotation._ON_BIND_TARGET, None)
 
         if _on_bind_target is not None:
-            _on_bind_target(self, target)
+            _on_bind_target(self, target=target, ctx=ctx)
 
-    def remove_from(self, target):
+    def remove_from(self, target, ctx=None):
         """Remove self annotation from target annotations.
 
-        :param target: target from where remove self annotation
+        :param target: target from where remove self annotation.
+        :param ctx: target ctx.
         """
 
         annotations_key = Annotation.__ANNOTATIONS_KEY__
@@ -399,13 +404,14 @@ class Annotation(object):
         return result
 
     @classmethod
-    def get_local_annotations(annotation_type, target, exclude=None):
+    def get_local_annotations(annotation_type, target, exclude=None, ctx=None):
         """Get a list of local target annotations in the order of their
             definition.
 
         :param type annotation_type: type of annotation to get from target.
         :param target: target from where get annotations.
         :param tuple/type exclude: annotation types to exclude from selection.
+        :param ctx: target ctx.
 
         :return: target local annotations
         :rtype: list
@@ -437,12 +443,13 @@ class Annotation(object):
         return result
 
     @classmethod
-    def remove(annotation_type, target, exclude=None):
+    def remove(annotation_type, target, exclude=None, ctx=None):
         """Remove from target annotations which inherit from annotation_type
 
         :param target: target from where remove annotations which inherits from
             annotation_type.
         :param tuple/type exclude: annotation types to exclude from selection.
+        :param ctx: target ctx.
         """
 
         # initialize exclude

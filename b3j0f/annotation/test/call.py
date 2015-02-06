@@ -39,14 +39,7 @@ class CallTests(UTCase):
 
     def _assertCall(self, f, *args, **kwargs):
 
-        e = None
-
-        try:
-            f(*args, **kwargs)
-        except Exception as e:
-            pass
-
-        self.assertIsNotNone(e)
+        self.assertRaises(Exception, f, *args, **kwargs)
 
     def testTypes(self):
 

@@ -27,6 +27,7 @@
 """Annotations dedicated to object oriented programming.
 """
 
+from b3j0f.utils.version import PY2
 from b3j0f.annotation import Annotation
 from b3j0f.annotation.interception import Interceptor, PrivateInterceptor
 
@@ -128,7 +129,7 @@ class Mixin(Annotation):
         self.attributes = attributes
         self.named_attributes = named_attributes
 
-    def on_bind_target(self, target):
+    def on_bind_target(self, target, ctx, *args, **kwargs):
 
         super(Mixin, self).on_bind_target(target)
 
@@ -138,7 +139,8 @@ class Mixin(Annotation):
         for attribute in self.attributes:
             Mixin.mixin(target, attribute)
 
-        for name, attribute in self.named_attributes.iteritems():
+        for name in self.named_attributes:
+            attribute = self.named_attributes[name]
             Mixin.mixin(target, attribute, name)
 
     @staticmethod
@@ -176,9 +178,15 @@ class Mixin(Annotation):
         if not isclass(target) or bound_method:
             _type = type(target)
             _type = Interceptor.get_source_target(_type)
-            result = MethodType(function, target, _type)
+            method_args = [function, target]
+            if PY2:
+                method_args += _type
+            result = MethodType(*method_args)
         else:
-            result = MethodType(function, None, target)
+            if PY2:
+                result = MethodType(function, None, target)
+            else:
+                result = function
 
         Mixin.set_mixin(target, result, name)
 
@@ -339,7 +347,7 @@ class Mixin(Annotation):
 
         mixedins_by_name = Mixin.get_mixedins_by_name(target).copy()
 
-        for _name, mixedins in mixedins_by_name.iteritems():
+        for _name in mixedins_by_name:
             if name is None or name == _name:
                 try:
                     while True:
@@ -384,8 +392,8 @@ class Deprecated(PrivateInterceptor):
         warn_explicit(
             "Call to deprecated function {0}.".format(target.__name__),
             category=DeprecationWarning,
-            filename=target.func_code.co_filename,
-            lineno=target.func_code.co_firstlineno + 1
+            filename=target.__code__.co_filename,
+            lineno=target.__code__.co_firstlineno + 1
         )
         result = joinpoint.proceed()
         return result
@@ -402,9 +410,11 @@ class Singleton(Annotation):
         self.args = args
         self.kwargs = kwargs
 
-    def _bind_target(self, target):
+    def _bind_target(self, target, ctx, *args, **kwargs):
 
-        target = super(Singleton, self)._bind_target(target)
+        target = super(Singleton, self)._bind_target(
+            target, ctx=ctx, *args, **kwargs
+        )
 
         instance = target(*self.args, **self.kwargs)
         instance.__call__ = lambda x=None: instance
