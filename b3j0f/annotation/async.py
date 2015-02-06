@@ -44,7 +44,7 @@ from signal import signal, SIGALRM, alarm
 
 from b3j0f.annotation.interception import PrivateInterceptor
 from b3j0f.annotation import Annotation
-from b3j0f.annotation.oop import MixIn
+from b3j0f.annotation.oop import Mixin
 
 
 class Synchronized(PrivateInterceptor):
@@ -275,9 +275,9 @@ class Observable(PrivateInterceptor):
             observer.notify(target, args, kwargs, result, post)
 
     def on_bind_target(self, target):
-        MixIn.set_mixin(target, self.registerObserver)
-        MixIn.set_mixin(target, self.unregisterObserver)
-        MixIn.set_mixin(target, self.notify_observers)
+        Mixin.set_mixin(target, self.registerObserver)
+        Mixin.set_mixin(target, self.unregisterObserver)
+        Mixin.set_mixin(target, self.notify_observers)
 
     def _pre_intercepts(self, target, args, kwargs):
         self._super(Observable)._pre_intercepts(target, args, kwargs)

@@ -24,8 +24,7 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-"""
-Annotations dedicated to object oriented programming.
+"""Annotations dedicated to object oriented programming.
 """
 
 from b3j0f.annotation import Annotation
@@ -37,9 +36,72 @@ from inspect import getmembers, isfunction, ismethod, isclass
 
 from warnings import warn_explicit
 
+__all__ = ['Transform', 'Mixin', 'Deprecated', 'Singleton', 'MethodMixin']
 
-class MixIn(Annotation):
-    """Annotation which enrichs a target with MixIn.
+
+class Transform(Annotation):
+    """Transform a class into an annotation or something else if parameters are
+    different.
+    """
+
+    NAME = 'name'
+    BASES = 'bases'
+    DICT = 'dict'
+    UPDATE = 'update'
+
+    DEFAULT_BASES = (Annotation,)
+    DEFAULT_DICT = {}
+
+    __slots__ = (NAME, BASES, DICT, UPDATE) + Annotation.__slots__
+
+    def __init__(
+        self, name=None, bases=DEFAULT_BASES, dict=DEFAULT_DICT, update=True
+    ):
+        """
+        According to type constructor parameters, you can specifiy name, bases
+        and dict.
+
+        :param str name: new class name.
+        :param tuple bases: new class bases.
+        :param dict dict: class __dict__.
+        :param bool update: if True, update new properties on the new class.
+        Else replace old ones.
+        """
+
+        self.name = name
+        self.bases = bases
+        self.dict = dict
+        self.update = update
+
+    def _bind_target(self, target, *args, **kwargs):
+
+        result = target
+        # do something only for class objects
+        if isclass(target):
+
+            name = target.__name__ if self.name is None else self.name
+            # if update is True, update target properties
+            if self.update:
+                bases = tuple(set(target.__bases__ + self.bases))
+                dict = target.__dict__.copy()
+                dict.update(self.dict)
+            else:  # else use new properties
+                bases = self.bases
+                dict = self.dict
+            # get the new type related to name, bases and dict
+            result = type(name, bases, dict)
+        else:
+            raise TypeError(
+                'Wrong annotated element type {0}, class expected.'.format(
+                    target
+                )
+            )
+
+        return result
+
+
+class Mixin(Annotation):
+    """Annotation which enrichs a target with Mixin.
 
     For every defined mixin, a private couple of (name, array of mixed items)
     is created into the target in order to go back in a no mixin state.
@@ -47,7 +109,7 @@ class MixIn(Annotation):
 
     class MixInError(Exception):
         """
-        Raised for any MixIn error.
+        Raised for any Mixin error.
         """
 
         pass
@@ -60,7 +122,7 @@ class MixIn(Annotation):
 
     def __init__(self, classes=tuple(), *attributes, **named_attributes):
 
-        super(MixIn, self).__init__()
+        super(Mixin, self).__init__()
 
         self.classes = classes if isinstance(classes, tuple) else (classes,)
         self.attributes = attributes
@@ -68,16 +130,16 @@ class MixIn(Annotation):
 
     def on_bind_target(self, target):
 
-        super(MixIn, self).on_bind_target(target)
+        super(Mixin, self).on_bind_target(target)
 
         for cls in self.classes:
-            MixIn.mixin(target, cls)
+            Mixin.mixin(target, cls)
 
         for attribute in self.attributes:
-            MixIn.mixin(target, attribute)
+            Mixin.mixin(target, attribute)
 
         for name, attribute in self.named_attributes.iteritems():
-            MixIn.mixin(target, attribute, name)
+            Mixin.mixin(target, attribute, name)
 
     @staticmethod
     def mixin_class(target, cls):
@@ -85,7 +147,7 @@ class MixIn(Annotation):
         """
 
         for name, field in getmembers(cls):
-            MixIn.mixin(target, field, name)
+            Mixin.mixin(target, field, name)
 
     @staticmethod
     def mixin_function_or_method(
@@ -105,7 +167,7 @@ class MixIn(Annotation):
         elif ismethod(fm):
             function = fm.__func__
         else:
-            raise MixIn.MixInError(
+            raise Mixin.MixInError(
                 "{0} must be a function or a method.".format(fm))
 
         if name is None:
@@ -118,7 +180,7 @@ class MixIn(Annotation):
         else:
             result = MethodType(function, None, target)
 
-        MixIn.set_mixin(target, result, name)
+        Mixin.set_mixin(target, result, name)
 
         return result
 
@@ -136,17 +198,17 @@ class MixIn(Annotation):
         result = None
 
         if ismethod(resource) or isfunction(resource):
-            result = MixIn.mixin_function_or_method(target, resource, name)
+            result = Mixin.mixin_function_or_method(target, resource, name)
         elif isclass(resource):
             result = list()
             for name, content in getmembers(resource):
                 if isclass(content):
-                    mixin = MixIn.set_mixin(target, content, name)
+                    mixin = Mixin.set_mixin(target, content, name)
                 else:
-                    mixin = MixIn.mixin(target, content, name)
+                    mixin = Mixin.mixin(target, content, name)
                 result.append(mixin)
         else:
-            result = MixIn.set_mixin(target, resource, name)
+            result = Mixin.set_mixin(target, resource, name)
 
         return result
 
@@ -155,18 +217,18 @@ class MixIn(Annotation):
         """Get a set of couple (name, field) of target mixedin.
         """
 
-        result = getattr(target, MixIn.__MIXEDIN_KEY__, None)
+        result = getattr(target, Mixin.__MIXEDIN_KEY__, None)
 
         if result is None:
             result = dict()
-            setattr(target, MixIn.__MIXEDIN_KEY__, result)
+            setattr(target, Mixin.__MIXEDIN_KEY__, result)
 
         return result
 
     @staticmethod
     def set_mixin(target, resource, name=None, override=True):
         """Set a resource and returns the mixed one in target content or
-        MixIn.__NEW_CONTENT_KEY__ if resource name didn't exist in target.
+        Mixin.__NEW_CONTENT_KEY__ if resource name didn't exist in target.
 
         The optional input property name designates the target content item
         to mix with the resource.
@@ -175,7 +237,7 @@ class MixIn(Annotation):
         """
 
         if name is None and not hasattr(resource, '__name__'):
-            raise MixIn.MixInError(
+            raise Mixin.MixInError(
                 "name must be given or resource {0} can't be anonymous"
                 .format(resource))
 
@@ -183,11 +245,11 @@ class MixIn(Annotation):
 
         name = resource.__name__ if name is None else name
 
-        mixedins_by_name = MixIn.get_mixedins_by_name(target)
+        mixedins_by_name = Mixin.get_mixedins_by_name(target)
 
-        result = getattr(target, name, MixIn.__NEW_CONTENT_KEY__)
+        result = getattr(target, name, Mixin.__NEW_CONTENT_KEY__)
 
-        if override or result == MixIn.__NEW_CONTENT_KEY__:
+        if override or result == Mixin.__NEW_CONTENT_KEY__:
 
             if name not in mixedins_by_name:
                 mixedins_by_name[name] = (result,)
@@ -200,7 +262,7 @@ class MixIn(Annotation):
                 if len(mixedins_by_name[name]) == 1:
                     del mixedins_by_name[name]
                     if len(mixedins_by_name) == 0:
-                        delattr(target, MixIn.__MIXEDIN_KEY__)
+                        delattr(target, Mixin.__MIXEDIN_KEY__)
                 else:
                     mixedins_by_name[name] = mixedins_by_name[name][:-2]
                 result = None
@@ -223,10 +285,10 @@ class MixIn(Annotation):
         try:
             result = getattr(target, name)
         except AttributeError:
-            raise MixIn.MixInError(
+            raise Mixin.MixInError(
                 "No mixin {0} exists in {1}".format(name, target))
 
-        mixedins_by_name = MixIn.get_mixedins_by_name(target)
+        mixedins_by_name = Mixin.get_mixedins_by_name(target)
 
         mixedins = mixedins_by_name.get(name)
         if mixedins:
@@ -238,7 +300,7 @@ class MixIn(Annotation):
                 try:
                     index = mixedins.index(mixedin)
                 except ValueError:
-                    raise MixIn.MixInError(
+                    raise Mixin.MixInError(
                         "Mixedin {0} with name {1} does not exist \
                         in target {2}"
                         .format(mixedin, name, target))
@@ -247,7 +309,7 @@ class MixIn(Annotation):
             if len(mixedins) == 0:
                 # force to replace/delete the mixin even if set is False
                 # in order to stay in a consistent state
-                if mixedin != MixIn.__NEW_CONTENT_KEY__:
+                if mixedin != Mixin.__NEW_CONTENT_KEY__:
                     setattr(target, name, mixedin)
                 else:
                     delattr(target, name)
@@ -260,12 +322,12 @@ class MixIn(Annotation):
         else:
             # shouldn't be raised except if removing has been done
             # manually
-            raise MixIn.MixInError(
+            raise Mixin.MixInError(
                 "No mixin {0} exists in {1}".format(name, target))
 
         # clean mixedins if no one exists
         if len(mixedins_by_name) == 0:
-            delattr(target, MixIn.__MIXEDIN_KEY__)
+            delattr(target, Mixin.__MIXEDIN_KEY__)
 
         return result
 
@@ -275,35 +337,35 @@ class MixIn(Annotation):
         If name is given, then all mixin related to input name may be removed.
         """
 
-        mixedins_by_name = MixIn.get_mixedins_by_name(target).copy()
+        mixedins_by_name = Mixin.get_mixedins_by_name(target).copy()
 
         for _name, mixedins in mixedins_by_name.iteritems():
             if name is None or name == _name:
                 try:
                     while True:
-                        MixIn.remove_mixin(target, _name)
-                except MixIn.MixInError:
+                        Mixin.remove_mixin(target, _name)
+                except Mixin.MixInError:
                     pass
 
 
-class MethodMixIn(Annotation):
+class MethodMixin(Annotation):
     """Apply a mixin on a method.
     """
 
     def __init__(self, function, *args, **kwargs):
 
-        super(MethodMixIn, self).__init__(*args, **kwargs)
+        super(MethodMixin, self).__init__(*args, **kwargs)
 
         self.function = function
 
     def _bind_target(self, target, *args, **kwargs):
 
-        result = super(MethodMixIn, self)._bind_target(target, *args, **kwargs)
+        result = super(MethodMixin, self)._bind_target(target, *args, **kwargs)
 
         if ismethod(result):
             cls = target.im_class
             name = target.__name__
-            MixIn.mixin_function_or_method(cls, self.function, name)
+            Mixin.mixin_function_or_method(cls, self.function, name)
 
             return target
 
@@ -316,16 +378,16 @@ class Deprecated(PrivateInterceptor):
     result in a warning being emitted when the function is used.
     """
 
-    def _interception(self, annotation, advicesexecutor):
+    def _interception(self, joinpoint, *args, **kwargs):
 
-        target = advicesexecutor.callee
+        target = joinpoint.target
         warn_explicit(
             "Call to deprecated function {0}.".format(target.__name__),
             category=DeprecationWarning,
             filename=target.func_code.co_filename,
             lineno=target.func_code.co_firstlineno + 1
         )
-        result = advicesexecutor.execute()
+        result = joinpoint.proceed()
         return result
 
 

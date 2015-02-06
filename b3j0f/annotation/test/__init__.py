@@ -30,7 +30,7 @@ from unittest import main
 from time import sleep
 
 from b3j0f.utils.ut import UTCase
-from b3j0f.annotation import Annotation, StopPropagation, RoutineAnnotation
+from b3j0f.annotation import (Annotation, StopPropagation, RoutineAnnotation)
 
 
 class TestAnnotation(Annotation):
@@ -923,6 +923,7 @@ class RoutineAnnotationTest(AnnotationTest):
         self.assertEqual(self.annotation.routine, self.routine)
         self.assertEqual(self.annotation.params, self.params)
         self.assertEqual(self.annotation.result, self.result)
+
 
 if __name__ == '__main__':
     main()

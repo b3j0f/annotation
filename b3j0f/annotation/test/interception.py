@@ -83,12 +83,18 @@ class InterceptionTest(InterceptorTest):
 
         return lambda: None
 
+    def call_target(self):
+        """Call target.
+        """
+
+        self.target()
+
     def test_one_one(self):
         """
         Test one annotation and one call
         """
 
-        self.target()
+        self.call_target()
 
         self.assertEqual(self.count, 1)
 
@@ -96,8 +102,8 @@ class InterceptionTest(InterceptorTest):
         """
         Test one annotation and two calls
         """
-        self.target()
-        self.target()
+        self.call_target()
+        self.call_target()
 
         self.assertEqual(self.count, 2)
 
@@ -108,7 +114,7 @@ class InterceptionTest(InterceptorTest):
 
         self.interceptor(self.target)
 
-        self.target()
+        self.call_target()
 
         self.assertEqual(self.count, 2)
 
@@ -119,8 +125,8 @@ class InterceptionTest(InterceptorTest):
 
         self.interceptor(self.target)
 
-        self.target()
-        self.target()
+        self.call_target()
+        self.call_target()
 
         self.assertEqual(self.count, 4)
 
@@ -128,7 +134,7 @@ class InterceptionTest(InterceptorTest):
 
         self.interceptor.enable = True
 
-        self.target()
+        self.call_target()
 
         self.assertEqual(self.count, 1)
 
@@ -136,7 +142,7 @@ class InterceptionTest(InterceptorTest):
 
         self.interceptor.enable = False
 
-        self.target()
+        self.call_target()
 
         self.assertEqual(self.count, 0)
 
@@ -144,7 +150,7 @@ class InterceptionTest(InterceptorTest):
 
         Interceptor.set_enable(self.target, enable=True)
 
-        self.target()
+        self.call_target()
 
         self.assertEqual(self.count, 1)
 
@@ -152,7 +158,7 @@ class InterceptionTest(InterceptorTest):
 
         Interceptor.set_enable(self.target, enable=False)
 
-        self.target()
+        self.call_target()
 
         self.assertEqual(self.count, 0)
 
@@ -172,7 +178,7 @@ class PrivateInterceptorTest(InterceptorTest):
 
             self.utcase = utcase
 
-        def _interception(self, joinpoint):
+        def _interception(self, joinpoint, *args, **kwargs):
 
             return self.utcase.interception(joinpoint)
 
@@ -183,47 +189,6 @@ class PrivateInterceptorTest(InterceptorTest):
     def get_target(self):
 
         return lambda: None
-
-    def test_one_one(self):
-        """
-        Test one annotation and one call
-        """
-
-        self.target()
-
-        self.assertEqual(self.count, 1)
-
-    def test_one_two(self):
-        """
-        Test one annotation and two calls
-        """
-        self.target()
-        self.target()
-
-        self.assertEqual(self.count, 2)
-
-    def test_two_one(self):
-        """
-        Test two annotation and one call
-        """
-
-        self.interceptor(self.target)
-
-        self.target()
-
-        self.assertEqual(self.count, 2)
-
-    def test_two_two(self):
-        """
-        Test two annotations and two calls
-        """
-
-        self.interceptor(self.target)
-
-        self.target()
-        self.target()
-
-        self.assertEqual(self.count, 4)
 
 
 class CallInterceptorTest(InterceptorTest):
@@ -244,47 +209,9 @@ class CallInterceptorTest(InterceptorTest):
 
         return CallInterceptorTest.Test
 
-    def test_one_one(self):
-        """
-        Test one annotation and one call
-        """
+    def call_target(self):
 
         self.target()()
-
-        self.assertEqual(self.count, 1)
-
-    def test_one_two(self):
-        """
-        Test one annotation and two calls
-        """
-
-        self.target()()
-        self.target()()
-
-        self.assertEqual(self.count, 2)
-
-    def test_two_one(self):
-        """
-        Test two annotation and one call
-        """
-
-        self.interceptor(self.target)
-
-        self.target()()
-
-        self.assertEqual(self.count, 2)
-
-    def test_two_two(self):
-        """
-        Test two annotations and two calls
-        """
-
-        self.interceptor(self.target)
-
-        self.target()()
-        self.target()()
-
-        self.assertEqual(self.count, 4)
 
 
 class PrivateCallInterceptorTest(InterceptorTest):
@@ -318,46 +245,9 @@ class PrivateCallInterceptorTest(InterceptorTest):
 
         return CallInterceptorTest.Test
 
-    def test_one_one(self):
-        """
-        Test one annotation and one call
-        """
+    def call_target(self):
 
         self.target()()
-
-        self.assertEqual(self.count, 1)
-
-    def test_one_two(self):
-        """
-        Test one annotation and two calls
-        """
-        self.target()()
-        self.target()()
-
-        self.assertEqual(self.count, 2)
-
-    def test_two_one(self):
-        """
-        Test two annotation and one call
-        """
-
-        self.interceptor(self.target)
-
-        self.target()()
-
-        self.assertEqual(self.count, 2)
-
-    def test_two_two(self):
-        """
-        Test two annotations and two calls
-        """
-
-        self.interceptor(self.target)
-
-        self.target()()
-        self.target()()
-
-        self.assertEqual(self.count, 4)
 
 
 if __name__ == '__main__':

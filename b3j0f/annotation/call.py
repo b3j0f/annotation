@@ -197,11 +197,11 @@ class Types(PrivateInterceptor):
 
     def _interception(self, joinpoint):
 
-        target = joinpoint.callee
+        target = joinpoint.target
         args = joinpoint.args
         kwargs = joinpoint.kwargs
 
-        if self.named_parameter_types:
+        if self.ptypes:
             callargs = getcallargs(target, *args, **kwargs)
 
             for arg in callargs:
@@ -220,18 +220,18 @@ class Types(PrivateInterceptor):
 
         result = joinpoint.proceed()
 
-        target = joinpoint.callee
+        target = joinpoint.target
         args = joinpoint.args
         kwargs = joinpoint.kwargs
 
-        if self.result_type:
-            if not Types.check_value(result, self.result_type):
+        if self.rtype:
+            if not Types.check_value(result, self.rtype):
                 raise Types.TypesError(
                     "wrong result type for {0} with parameters {1}, {2}: {3} \
                     ({4}). Expected {5}.".
                     format(
                         target, args, kwargs, result, type(result),
-                        self.result_type)
+                        self.rtype)
                 )
 
         return result
@@ -258,13 +258,16 @@ class Curried(PrivateInterceptor):
     evaluated.
     """
 
-    #: args attribute name
-    ARGS = 'args'
+    ARGS = 'args'  #: args attribute name
 
-    #: kwargs attribute name
-    KWARGS = 'kwargs'
+    KWARGS = 'kwargs'  #: kwargs attribute name
 
-    __slots__ = (ARGS, KWARGS) + PrivateInterceptor.__slots__
+    DEFAULT_ARGS = 'default_args'  #: default args attribute name
+    DEFAULT_KWARGS = 'default_kwargs'  #: default kwargs attribute name
+
+    __slots__ = (
+        ARGS, KWARGS, DEFAULT_ARGS, DEFAULT_KWARGS
+    ) + PrivateInterceptor.__slots__
 
     class CurriedResult(object):
         """
@@ -280,14 +283,14 @@ class Curried(PrivateInterceptor):
             self.decorator = decorator
             self.exception = exception
 
-    def __init__(self, varargs, keywords, *args, **kwargs):
+    def __init__(self, varargs=(), keywords={}, *args, **kwargs):
 
         super(Curried, self).__init__(*args, **kwargs)
 
         self.args = self.default_args = varargs
         self.kwargs = self.default_kwargs = keywords
 
-    def _interception(self, joinpoint):
+    def _interception(self, joinpoint, *args, **kwargs):
 
         result = None
 
@@ -310,7 +313,7 @@ class Curried(PrivateInterceptor):
             # call joinpoint with all arguments
             joinpoint.args = self.args
             joinpoint.kwargs = self.kwargs
-            result = joinpoint.execute()
+            result = joinpoint.proceed()
 
         return result
 

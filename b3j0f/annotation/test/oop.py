@@ -28,7 +28,23 @@
 from unittest import main
 
 from b3j0f.utils.ut import UTCase
-from b3j0f.annotation.oop import MixIn, MethodMixIn, Deprecated, Singleton
+from b3j0f.annotation import Annotation
+from b3j0f.annotation.oop import (
+    Transform, Mixin, MethodMixin, Deprecated, Singleton
+)
+
+
+class TransformTest(UTCase):
+    """Test Transform Annotation.
+    """
+
+    def test_default(self):
+
+        @Transform()
+        class A:
+            pass
+
+        self.assertTrue(issubclass(A, Annotation))
 
 
 class OOPTests(UTCase):
@@ -44,31 +60,31 @@ class OOPTests(UTCase):
 
         plop = A.plop
 
-        mixedins_by_name = MixIn.get_mixedins_by_name(A)
+        mixedins_by_name = Mixin.get_mixedins_by_name(A)
 
         self.assertEqual(len(mixedins_by_name), 0)
 
-        MixIn.set_mixin(A, 2, 'a')
-        MixIn.set_mixin(A, lambda: None, 'b')
-        MixIn.set_mixin(A, None, 'plop')
-        MixIn.set_mixin(A, None, 'plop')
-        MixIn.set_mixin(A, None, 'plop')
+        Mixin.set_mixin(A, 2, 'a')
+        Mixin.set_mixin(A, lambda: None, 'b')
+        Mixin.set_mixin(A, None, 'plop')
+        Mixin.set_mixin(A, None, 'plop')
+        Mixin.set_mixin(A, None, 'plop')
 
-        mixedins_by_name = MixIn.get_mixedins_by_name(A)
+        mixedins_by_name = Mixin.get_mixedins_by_name(A)
 
         self.assertEqual(len(mixedins_by_name), 3)
         self.assertEqual(A.a, 2)
         self.assertIsNone(A.plop)
 
-        MixIn.remove_mixin(A, 'plop')
+        Mixin.remove_mixin(A, 'plop')
 
-        mixedins_by_name = MixIn.get_mixedins_by_name(A)
+        mixedins_by_name = Mixin.get_mixedins_by_name(A)
 
         self.assertEqual(len(mixedins_by_name), 3)
 
-        MixIn.remove_all_mixins(A)
+        Mixin.remove_all_mixins(A)
 
-        mixedins_by_name = MixIn.get_mixedins_by_name(A)
+        mixedins_by_name = Mixin.get_mixedins_by_name(A)
 
         self.assertEqual(len(mixedins_by_name), 0)
         self.assertFalse(hasattr(A, 'a'))
@@ -88,7 +104,7 @@ class OOPTests(UTCase):
 
         a = None
 
-        @MixIn(ClassForMixIn, lambda: None, get_3=get_3, a=a)
+        @Mixin(ClassForMixIn, lambda: None, get_3=get_3, a=a)
         class MixedInClass(object):
             def get_1(self):
                 return '1'
@@ -106,11 +122,11 @@ class OOPTests(UTCase):
         self.assertEqual(mixedInstance.get_3(), a)
         self.assertIs(mixedInstance.get_1(), 1)
 
-        MixIn.remove_all_mixins(MixedInClass)
+        Mixin.remove_all_mixins(MixedInClass)
         self.assertEqual(mixedInstance.get_3(), 3)
         self.assertIs(mixedInstance.get_1(), '1')
 
-        MixIn(ClassForMixIn, lambda: None, get_3=get_3, a=a)(MixedInClass)
+        Mixin(ClassForMixIn, lambda: None, get_3=get_3, a=a)(MixedInClass)
 
         self.assertTrue(hasattr(MixedInClass, 'get_2'))
         self.assertTrue(hasattr(MixedInClass, 'a'))
@@ -127,7 +143,7 @@ class OOPTests(UTCase):
 
         class MixedInClass(object):
 
-            @MethodMixIn(plop)
+            @MethodMixin(plop)
             def get_1(self):
                 return 1
 
@@ -142,7 +158,7 @@ class OOPTests(UTCase):
             def get_1(self):
                 return 1
 
-        MethodMixIn(plop)(MixedInClass.get_1)
+        MethodMixin(plop)(MixedInClass.get_1)
 
         self.assertTrue(hasattr(MixedInClass, 'get_1'))
 
@@ -150,13 +166,13 @@ class OOPTests(UTCase):
 
         self.assertEqual(mixedInstance.get_1(), None)
 
-        MixIn.remove_all_mixins(MixedInClass)
+        Mixin.remove_all_mixins(MixedInClass)
 
         self.assertEqual(mixedInstance.get_1(), 1)
 
     def testDeprecated(self):
 
-        @Deprecated
+        @Deprecated()
         def b():
             pass
 

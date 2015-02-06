@@ -136,7 +136,7 @@ class CallTests(UTCase):
         g(4)
         self._assertCall(g)
 
-        @Types(p=int)
+        @Types(ptypes={'p': int})
         def f(p=None):
             pass
 
@@ -144,7 +144,7 @@ class CallTests(UTCase):
         a()
         self._assertCall(a, '')
 
-        @Types(p=Types.NotNone(int))
+        @Types(ptypes={'p': Types.NotNone(int)})
         def g(p=None):
             pass
 
@@ -152,7 +152,7 @@ class CallTests(UTCase):
         self._assertCall(b)
         self._assertCall(b, '')
 
-        @Types(p=[int])
+        @Types(ptypes={'p': [int]})
         def h(p=None):
             pass
 
@@ -163,7 +163,7 @@ class CallTests(UTCase):
         h()
         self._assertCall(h, [2, ''])
 
-        @Types(p=[Types.NotNone(int)])
+        @Types(ptypes={'p': [Types.NotNone(int)]})
         def i(p=None):
             pass
 
@@ -174,7 +174,7 @@ class CallTests(UTCase):
         i()
         self._assertCall(i, [2, ''])
 
-        @Types(p=Types.NotEmpty([int]))
+        @Types(ptypes={'p': Types.NotEmpty([int])})
         def d(p=None):
             pass
 

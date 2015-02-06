@@ -289,7 +289,7 @@ class TargetTest(UTCase):
         self.assertRaises(Target.Error, Test(), TestA)
         self.assertRaises(Target.Error, Test(), TestB)
         Test()(TestAB)
-        # check instances is not checked
+        # check instances is checked
         self.assertRaises(Target.Error, Test(), TestA())
         self.assertRaises(Target.Error, Test(), TestB())
         Test()(TestAB())
