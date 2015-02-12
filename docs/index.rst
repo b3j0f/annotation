@@ -87,12 +87,13 @@ Perspectives
 
 - Cython implementation.
 
-ChangeLogs
-----------
+Changelog
+---------
 
-version 0.1.2: 02/12/2015
+0.1.2 (02/12/2015)
+##################
 
-Move code from annotation package to code module.
+- Move code from the package annotation to the module core.
 
 Donating
 --------
