@@ -90,6 +90,10 @@ Perspectives
 ChangeLogs
 ----------
 
+version 0.1.2: 02/12/2015
+
+Move code from annotation package to code module.
+
 Donating
 --------
 

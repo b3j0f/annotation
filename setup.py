@@ -45,7 +45,7 @@ keywords = [
 
 setup(
     name='b3j0f.annotation',
-    version='0.1.0',
+    version='0.1.2',
     install_requires=dependencies,
     packages=find_packages(exclude=['test.*', '*.test.*']),
     author="b3j0f",
