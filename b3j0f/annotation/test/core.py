@@ -441,6 +441,18 @@ class GetAnnotationsTest(AnnotationTest):
 
         self.assertTrue(annotations)
 
+    def test_dclass(self):
+        """Test to annotate directly a class.
+        """
+
+        @Annotation()
+        class Test(object):
+            pass
+
+        annotations = Annotation.get_annotations(Test)
+
+        self.assertTrue(annotations)
+
     def test_namespace(self):
         """Test to annotate a namespace.
         """
@@ -463,6 +475,19 @@ class GetAnnotationsTest(AnnotationTest):
                 pass
 
         self.annotation(Test.test, ctx=Test)
+
+        annotations = Annotation.get_annotations(Test.test, ctx=Test)
+
+        self.assertTrue(annotations)
+
+    def test_dmethod(self):
+        """Test to annotate directly a method.
+        """
+
+        class Test:
+            @Annotation()
+            def test(self):
+                pass
 
         annotations = Annotation.get_annotations(Test.test, ctx=Test)
 
