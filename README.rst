@@ -78,6 +78,11 @@ Perspectives
 Changelog
 ---------
 
+0.1.5 (27/02/2015)
+##################
+
+- Fix bug when trying to annotate a class constructor in python3+.
+
 0.1.4 (27/02/2015)
 ##################
 
