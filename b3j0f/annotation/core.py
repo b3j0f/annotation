@@ -54,7 +54,7 @@ try:
 except ImportError:
     from dummy_threading import Timer
 
-from inspect import ismethod, getmembers
+from inspect import ismethod, getmembers, isfunction
 
 
 class Annotation(object):
@@ -341,7 +341,9 @@ class Annotation(object):
 
         try:
             # get local annotations
-            local_annotations = get_local_property(target, annotations_key)
+            local_annotations = get_local_property(
+                target, annotations_key, ctx=ctx
+            )
         except TypeError:
             raise TypeError('target {0} must be hashable'.format(target))
 
@@ -444,6 +446,12 @@ class Annotation(object):
                             target.__func__, Annotation.__ANNOTATIONS_KEY__,
                             result
                         )
+                elif isfunction(target):
+                    local_annotations = get_local_property(
+                        target, Annotation.__ANNOTATIONS_KEY__,
+                        result
+                    )
+
         except TypeError:
             raise TypeError('target {0} must be hashable'.format(target))
 
@@ -534,6 +542,11 @@ class Annotation(object):
                     annotations_by_ctx = get_property(
                         elt=target.__func__, key=Annotation.__ANNOTATIONS_KEY__
                     )
+            elif isfunction(target):
+                annotations_by_ctx = get_property(
+                    elt=target,
+                    key=Annotation.__ANNOTATIONS_KEY__
+                )
 
         exclude = () if exclude is None else exclude
 

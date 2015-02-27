@@ -462,7 +462,7 @@ class GetAnnotationsTest(AnnotationTest):
             def test(self):
                 pass
 
-        self.annotation(Test.test)
+        self.annotation(Test.test, ctx=Test)
 
         annotations = Annotation.get_annotations(Test.test, ctx=Test)
 
@@ -714,7 +714,7 @@ class GetLocalAnnotationsTest(AnnotationTest):
             def __init__(self):
                 pass
 
-        annotations = Annotation.get_local_annotations(Test.__init__, ctx=Test)
+        annotations = Annotation.get_local_annotations(Test.__init__)
 
         self.assertTrue(annotations)
 
@@ -727,9 +727,9 @@ class GetLocalAnnotationsTest(AnnotationTest):
             def __init__(self):
                 pass
 
-        self.annotation(Test.__init__, ctx=Test)
+        self.annotation(Test.__init__)
 
-        annotations = Annotation.get_local_annotations(Test.__init__, ctx=Test)
+        annotations = Annotation.get_local_annotations(Test.__init__)
 
         self.assertTrue(annotations)
 
