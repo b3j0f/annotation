@@ -54,6 +54,8 @@ try:
 except ImportError:
     from dummy_threading import Timer
 
+from inspect import ismethod, getmembers
+
 
 class Annotation(object):
     """Base class for all annotations defined in this library.
@@ -403,7 +405,9 @@ class Annotation(object):
         return result
 
     @classmethod
-    def get_local_annotations(annotation_type, target, exclude=None, ctx=None):
+    def get_local_annotations(
+        annotation_type, target, exclude=None, ctx=None, select=lambda *p: True
+    ):
         """Get a list of local target annotations in the order of their
             definition.
 
@@ -411,6 +415,9 @@ class Annotation(object):
         :param target: target from where get annotations.
         :param tuple/type exclude: annotation types to exclude from selection.
         :param ctx: target ctx.
+        :param select: selection function which takes in parameters a target,
+        a ctx and an annotation and returns True if the annotation has to be
+        selected. True by default.
 
         :return: target local annotations
         :rtype: list
@@ -424,8 +431,19 @@ class Annotation(object):
         try:
             # get local annotations
             local_annotations = get_local_property(
-                target, Annotation.__ANNOTATIONS_KEY__, result
+                target, Annotation.__ANNOTATIONS_KEY__, result, ctx=ctx
             )
+            if not local_annotations:
+                if ismethod(target):
+                    local_annotations = get_local_property(
+                        target.__func__, Annotation.__ANNOTATIONS_KEY__,
+                        result, ctx=ctx
+                    )
+                    if not local_annotations:
+                        local_annotations = get_local_property(
+                            target.__func__, Annotation.__ANNOTATIONS_KEY__,
+                            result
+                        )
         except TypeError:
             raise TypeError('target {0} must be hashable'.format(target))
 
@@ -434,21 +452,27 @@ class Annotation(object):
             inherited = isinstance(local_annotation, annotation_type)
             # and if not excluded
             not_excluded = not isinstance(local_annotation, exclude)
-
-            # if both conditions, add local annotation to the result
-            if inherited and not_excluded:
+            # and if selected
+            selected = select(target, ctx, local_annotation)
+            # if three conditions, add local annotation to the result
+            if inherited and not_excluded and selected:
                 result.append(local_annotation)
 
         return result
 
     @classmethod
-    def remove(annotation_type, target, exclude=None, ctx=None):
+    def remove(
+        annotation_type, target, exclude=None, ctx=None, select=lambda *p: True
+    ):
         """Remove from target annotations which inherit from annotation_type
 
         :param target: target from where remove annotations which inherits from
             annotation_type.
         :param tuple/type exclude: annotation types to exclude from selection.
         :param ctx: target ctx.
+        :param select: annotation selection function which takes in parameters
+        a target, a ctx and an annotation and return True if the annotation has
+        to be removed.
         """
 
         # initialize exclude
@@ -470,6 +494,7 @@ class Annotation(object):
                 annotation for annotation in local_annotations
                 if isinstance(annotation, annotation_type)
                     and not isinstance(annotation, exclude)
+                    and select(target, ctx, annotation)
             ]
 
             # and remove annotations from target
@@ -477,7 +502,9 @@ class Annotation(object):
                 annotation_to_remove.remove_from(target)
 
     @classmethod
-    def get_annotations(annotation_type, target, exclude=None, ctx=None):
+    def get_annotations(
+        annotation_type, target, exclude=None, ctx=None, select=lambda *p: True
+    ):
         """Returns all input target annotations of annotation_type type sorted
         by definition order.
 
@@ -485,6 +512,9 @@ class Annotation(object):
         :param target: target from where get annotations.
         :param tuple/type exclude: annotation types to remove from selection.
         :param ctx: target ctx.
+        :param select: bool function which select annotations after applying
+        previous type filters. Takes a target, a ctx and an annotation in
+        parameters. True by default.
         """
 
         result = []
@@ -492,6 +522,18 @@ class Annotation(object):
         annotations_by_ctx = get_property(
             elt=target, key=Annotation.__ANNOTATIONS_KEY__, ctx=ctx
         )
+
+        if not annotations_by_ctx:
+            if ismethod(target):
+                annotations_by_ctx = get_property(
+                    elt=target.__func__,
+                    key=Annotation.__ANNOTATIONS_KEY__,
+                    ctx=ctx
+                )
+                if not annotations_by_ctx:
+                    annotations_by_ctx = get_property(
+                        elt=target.__func__, key=Annotation.__ANNOTATIONS_KEY__
+                    )
 
         exclude = () if exclude is None else exclude
 
@@ -511,18 +553,21 @@ class Annotation(object):
                 if annotation.override:
                     exclude += (annotation.__class__, )
 
-                # check for annotation type
+                # check for annotation
                 if (isinstance(annotation, annotation_type)
-                        and not isinstance(annotation, exclude)):
+                        and not isinstance(annotation, exclude)
+                        and select(target, ctx, annotation)):
 
                     result.append(annotation)
 
         return result
 
     @classmethod
-    def get_annotated_fields(annotation_type, instance):
-        """Get arrays of (annotated fields, annotations) by annotation_type of
-            input instance.
+    def get_annotated_fields(
+        annotation_type, instance, select=lambda *p: True
+    ):
+        """Get dict of {annotated fields: annotations} by annotation_type of
+        input instance.
 
         :return: a set of (annotated fields, annotations)
         :rtype: dict
@@ -530,19 +575,19 @@ class Annotation(object):
 
         result = {}
 
-        field_names = dir(instance)
-
-        for field_name in field_names:
-            field = getattr(instance, field_name)
+        for name, member in getmembers(instance):
             try:
-                annotations = annotation_type.get_annotations(field)
+                annotations = annotation_type.get_annotations(
+                    target=member, ctx=instance, select=select
+                )
             except TypeError:
-                continue
-            try:
-                if annotations:
-                    result[field] = annotations
-            except TypeError:  # if field is an object proxy
                 pass
+            else:
+                try:
+                    if annotations:
+                        result[member] = annotations
+                except TypeError:  # if field is an object proxy
+                    pass
 
         return result
 

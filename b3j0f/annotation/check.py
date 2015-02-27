@@ -35,7 +35,7 @@ from b3j0f.utils.iterable import ensureiterable
 
 from types import FunctionType
 
-from inspect import isclass
+from inspect import isclass, isroutine
 
 __all__ = ['Condition', 'MaxCount', 'Target']
 
@@ -181,6 +181,7 @@ class Target(AnnotationChecker):
 
     FUNC = FunctionType  #: function type
     CALLABLE = callable  #: callable type
+    ROUTINE = 'routine'  #: routine type
 
     OR = 'or'  #: or rule
     AND = 'and'  #: and rule
@@ -217,7 +218,9 @@ class Target(AnnotationChecker):
         annotation = joinpoint.kwargs['self']
 
         for _type in self.types:
-            if ((_type == Target.FUNC and isinstance(target, Target.FUNC))
+            if ((_type == Target.ROUTINE and isroutine(target))
+                or
+                (_type == Target.FUNC and isinstance(target, Target.FUNC))
                 or
                 (_type == type and isclass(target))
                 or

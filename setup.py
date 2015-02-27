@@ -45,12 +45,12 @@ keywords = [
 
 setup(
     name='b3j0f.annotation',
-    version='0.1.2',
+    version='0.1.4',
     install_requires=dependencies,
     packages=find_packages(exclude=['test.*', '*.test.*']),
     author="b3j0f",
     author_email="jlabejof@yahoo.fr",
-    description="Python Annotation library",
+    description="Reflective annotation library for python",
     long_description=desc,
     url='https://github.com/b3j0f/annotation/',
     license='MIT License',

@@ -29,6 +29,8 @@ from unittest import main
 
 from time import sleep
 
+from inspect import getmembers
+
 from b3j0f.utils.ut import UTCase
 from b3j0f.annotation.core import (
     Annotation, StopPropagation, RoutineAnnotation
@@ -462,7 +464,7 @@ class GetAnnotationsTest(AnnotationTest):
 
         self.annotation(Test.test)
 
-        annotations = Annotation.get_annotations(Test.test)
+        annotations = Annotation.get_annotations(Test.test, ctx=Test)
 
         self.assertTrue(annotations)
 
@@ -506,6 +508,69 @@ class GetAnnotationsTest(AnnotationTest):
         self.annotation(sys)
 
         annotations = Annotation.get_annotations(sys)
+
+        self.assertTrue(annotations)
+
+    def test_dconstructor(self):
+        """Test to annotate directly a constructor.
+        """
+
+        class Test(object):
+
+            @Annotation()
+            def __init__(self):
+                pass
+
+        #self.annotation(Test.__init__, ctx=Test)
+
+        annotations = Annotation.get_annotations(Test.__init__, ctx=Test)
+
+        self.assertTrue(annotations)
+
+    def test_constructor(self):
+        """Test to annotate a constructor.
+        """
+
+        class Test(object):
+
+            def __init__(self):
+                pass
+
+        self.annotation(Test.__init__, ctx=Test)
+
+        annotations = Annotation.get_annotations(Test.__init__, ctx=Test)
+
+        self.assertTrue(annotations)
+
+    def test_boundconstructor(self):
+        """Test to annotate a bound constructor.
+        """
+
+        class Test(object):
+
+            def __init__(self):
+                pass
+
+        test = Test()
+
+        self.annotation(test.__init__, ctx=test)
+
+        annotations = Annotation.get_annotations(test.__init__, ctx=test)
+
+        self.assertTrue(annotations)
+
+    def test_dboundconstructor(self):
+        """Test to annotate directly a bound constructor.
+        """
+
+        class Test(object):
+            @Annotation()
+            def __init__(self):
+                pass
+
+        test = Test()
+
+        annotations = Annotation.get_annotations(test.__init__, ctx=test)
 
         self.assertTrue(annotations)
 
@@ -637,6 +702,65 @@ class GetLocalAnnotationsTest(AnnotationTest):
         self.annotation(sys)
 
         annotations = Annotation.get_local_annotations(sys)
+
+        self.assertTrue(annotations)
+
+    def test_dconstructor(self):
+        """Test to annotate directly a constructor.
+        """
+
+        class Test:
+            @Annotation()
+            def __init__(self):
+                pass
+
+        annotations = Annotation.get_local_annotations(Test.__init__, ctx=Test)
+
+        self.assertTrue(annotations)
+
+    def test_constructor(self):
+        """Test to annotate a constructor.
+        """
+
+        class Test:
+
+            def __init__(self):
+                pass
+
+        self.annotation(Test.__init__, ctx=Test)
+
+        annotations = Annotation.get_local_annotations(Test.__init__, ctx=Test)
+
+        self.assertTrue(annotations)
+
+    def test_boundconstructor(self):
+        """Test to annotate a bound constructor.
+        """
+
+        class Test:
+            def __init__(self):
+                pass
+
+        test = Test()
+
+        self.annotation(test.__init__, ctx=test)
+
+        annotations = Annotation.get_local_annotations(test.__init__, ctx=test)
+
+        self.assertTrue(annotations)
+
+    def test_dboundconstructor(self):
+        """Test to annotate directly a bound constructor.
+        """
+
+        class Test:
+            @Annotation()
+            def __init__(self):
+                pass
+
+        test = Test()
+
+        annotations = Annotation.get_local_annotations(test.__init__, ctx=test)
 
         self.assertTrue(annotations)
 
@@ -842,24 +966,22 @@ class GetAnnotatedFields(AnnotationTest):
 
     def test_class(self):
 
-        field_names = dir(GetAnnotatedFields)
+        cls = object
 
-        fields = set()
+        members = set()
 
-        for field_name in list(field_names):
+        for name, member in getmembers(cls):
 
-            if hasattr(GetAnnotatedFields, field_name):
-                field = getattr(GetAnnotatedFields, field_name, None)
+            try:
+                self.annotation(member, ctx=cls)
+            except Exception:
+                pass
+            else:
+                members.add(member)
 
-                try:
-                    self.annotation(field)
-                except Exception:
-                    continue
-                fields.add(field)
+        annotated_fields = Annotation.get_annotated_fields(object)
 
-        annotated_fields = Annotation.get_annotated_fields(GetAnnotatedFields)
-
-        self.assertEqual(len(annotated_fields), len(fields))
+        self.assertEqual(len(annotated_fields), len(members))
 
         for annotated_field in annotated_fields:
 
