@@ -74,9 +74,9 @@ class Annotation(object):
 
     And properties are:
     - propagate: (default True) determines if an annotation is propagated to
-        all sub target elements.
+    all sub target elements.
     - override: (default False) exclude previous annotation of the same type as
-        self class.
+    self class.
     - _ttl: (default None) self time to leave.
     - _in_memory: (default False) save instance in a global dictionary.
 
@@ -418,8 +418,8 @@ class Annotation(object):
         :param tuple/type exclude: annotation types to exclude from selection.
         :param ctx: target ctx.
         :param select: selection function which takes in parameters a target,
-        a ctx and an annotation and returns True if the annotation has to be
-        selected. True by default.
+            a ctx and an annotation and returns True if the annotation has to
+            be selected. True by default.
 
         :return: target local annotations
         :rtype: list
@@ -479,8 +479,8 @@ class Annotation(object):
         :param tuple/type exclude: annotation types to exclude from selection.
         :param ctx: target ctx.
         :param select: annotation selection function which takes in parameters
-        a target, a ctx and an annotation and return True if the annotation has
-        to be removed.
+            a target, a ctx and an annotation and return True if the annotation
+            has to be removed.
         """
 
         # initialize exclude
@@ -521,8 +521,8 @@ class Annotation(object):
         :param tuple/type exclude: annotation types to remove from selection.
         :param ctx: target ctx.
         :param select: bool function which select annotations after applying
-        previous type filters. Takes a target, a ctx and an annotation in
-        parameters. True by default.
+            previous type filters. Takes a target, a ctx and an annotation in
+            parameters. True by default.
         """
 
         result = []

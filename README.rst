@@ -1,5 +1,5 @@
-b3j0f.annotation: Python annotation library
-===========================================
+Description
+-----------
 
 This library aims to provides tools to do annotation in a reflective language.
 

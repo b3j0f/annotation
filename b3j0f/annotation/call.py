@@ -350,7 +350,7 @@ class Retries(PrivateInterceptor):
     backoff: Multiply delay by this factor after each failure
     exceptions: A tuple of exception classes; default (Exception,)
     hook: A function with the signature myhook(tries_remaining, exception);
-          default None
+    default None.
 
     The decorator will call the function up to max_tries times if it raises
     an exception.
