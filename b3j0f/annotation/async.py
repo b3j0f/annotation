@@ -48,8 +48,7 @@ from b3j0f.annotation.oop import Mixin
 
 
 class Synchronized(PrivateInterceptor):
-    """
-    Transform a target into a thread safe target.
+    """Transform a target into a thread safe target.
     """
 
     #: lock attribute name
@@ -75,8 +74,7 @@ class Synchronized(PrivateInterceptor):
 
 
 class SynchronizedClass(Synchronized):
-    """
-    Transform a class into a thread safe class.
+    """Transform a class into a thread safe class.
     """
 
     def on_bind_target(self, target):
@@ -87,8 +85,7 @@ class SynchronizedClass(Synchronized):
 
 
 class Asynchronous(Annotation):
-    """
-    Transform a target into an asynchronous callable target.
+    """Transform a target into an asynchronous callable target.
     """
 
     def threaded(self, *args, **kwargs):
@@ -146,8 +143,7 @@ class Asynchronous(Annotation):
 
 
 class TimeOut(PrivateInterceptor):
-    """
-    Raise an Exception if the target call has not finished in time.
+    """Raise an Exception if the target call has not finished in time.
     """
 
     class TimeOutError(Exception):
@@ -203,8 +199,7 @@ class TimeOut(PrivateInterceptor):
 
 
 class Wait(PrivateInterceptor):
-    """
-    Define a time to wait before and after a target call.
+    """Define a time to wait before and after a target call.
     """
 
     DEFAULT_WAIT = 1
@@ -238,15 +233,17 @@ class Wait(PrivateInterceptor):
 
 
 class Observable(PrivateInterceptor):
-    """
-    Imlementation of the observer design pattern.
+    """Imlementation of the observer design pattern.
+
     It transforms a target into an observable object in adding method
     registerObserver, unregisterObserver and notify_observers.
     Observers listen to pre/post target interception.
     """
 
-    def __init__(self):
-        self._super(Observable).__init__()
+    def __init__(self, *args, **kwargs):
+
+        super(Observable, self).__init__(*args, **kwargs)
+
         self.observers = set()
 
     def registerObserver(self, observer):

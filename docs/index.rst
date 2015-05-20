@@ -8,6 +8,13 @@ b3j0f.annotation: Python annotation library
 ===========================================
 
 .. toctree::
+   :caption: Table of Contents
+   :maxdepth: 1
+
+   index
+   changelog
+
+.. toctree::
    :hidden:
 
    sources/modules
