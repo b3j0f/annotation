@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.0 (02/06/2015)
+------------------
+
+- fix errors in wheel packaging distribution.
+
 0.1.6 (20/05/2015)
 ------------------
 

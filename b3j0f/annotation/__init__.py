@@ -24,7 +24,7 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-__version__ = '0.1.7'
+__version__ = '0.2.0'
 
 __all__ = ['Annotation', 'StopPropagation', 'RoutineAnnotation']
 
