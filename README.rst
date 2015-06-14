@@ -1,7 +1,7 @@
 Description
 -----------
 
-This library aims to provides tools to do annotation in a reflective language.
+Annotation library like Java's annotation with reflective concerns for Python.
 
 .. image:: https://img.shields.io/pypi/l/b3j0f.annotation.svg
    :target: https://pypi.python.org/pypi/b3j0f.annotation/
