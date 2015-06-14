@@ -24,7 +24,7 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-__version__ = '0.2.2'
+__version__ = '0.2.2'  #: project version
 
 __all__ = ['Annotation', 'StopPropagation', 'RoutineAnnotation']
 

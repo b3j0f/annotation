@@ -189,7 +189,7 @@ class Annotation(object):
     def ttl(self):
         """Get actual ttl in seconds.
 
-        :return: actual ttl
+        :return: actual ttl.
         :rtype: float
         """
 
@@ -207,7 +207,7 @@ class Annotation(object):
     def ttl(self, value):
         """Change self ttl with input value.
 
-        :param float value: new ttl in seconds
+        :param float value: new ttl in seconds.
         """
 
         # get timer
@@ -252,7 +252,7 @@ class Annotation(object):
     def in_memory(self, value):
         """Add or remove self from global memory.
 
-        :param bool value: if True(False) ensure self is(is not) in memory
+        :param bool value: if True(False) ensure self is(is not) in memory.
         """
 
         self_class = self.__class__
@@ -287,7 +287,7 @@ class Annotation(object):
     def _bind_target(self, target, ctx=None):
         """Method to override in order to specialize binding of target.
 
-        :param target: target to bind
+        :param target: target to bind.
         :param ctx: target ctx.
         :return: bound target.
         """
@@ -381,7 +381,7 @@ class Annotation(object):
     def get_memory_annotations(annotation_type, exclude=None):
         """Get annotations in memory which inherits from annotation_type.
 
-        :param tuple/type exclude: annotation type(s) to exclude from search
+        :param tuple/type exclude: annotation type(s) to exclude from search.
         :return: found annotations which inherits from annotation_type.
         :rtype: set
         """
@@ -421,7 +421,7 @@ class Annotation(object):
             a ctx and an annotation and returns True if the annotation has to
             be selected. True by default.
 
-        :return: target local annotations
+        :return: target local annotations.
         :rtype: list
         """
 
@@ -472,7 +472,7 @@ class Annotation(object):
     def remove(
         annotation_type, target, exclude=None, ctx=None, select=lambda *p: True
     ):
-        """Remove from target annotations which inherit from annotation_type
+        """Remove from target annotations which inherit from annotation_type.
 
         :param target: target from where remove annotations which inherits from
             annotation_type.
@@ -500,9 +500,11 @@ class Annotation(object):
             # get annotations to remove which inherits from annotation_type
             annotations_to_remove = [
                 annotation for annotation in local_annotations
-                if isinstance(annotation, annotation_type)
+                if (
+                    isinstance(annotation, annotation_type)
                     and not isinstance(annotation, exclude)
                     and select(target, ctx, annotation)
+                )
             ]
 
             # and remove annotations from target
@@ -582,7 +584,7 @@ class Annotation(object):
         """Get dict of {annotated fields: annotations} by annotation_type of
         input instance.
 
-        :return: a set of (annotated fields, annotations)
+        :return: a set of (annotated fields, annotations).
         :rtype: dict
         """
 
@@ -642,9 +644,9 @@ class RoutineAnnotation(Annotation):
         self, routine=None, params=None, result=None, *args, **kwargs
     ):
         """
-        :param routine: routine information
-        :param params: params information
-        :param result: routine result information
+        :param routine: routine information.
+        :param params: params information.
+        :param result: routine result information.
         """
 
         super(RoutineAnnotation, self).__init__(*args, **kwargs)
