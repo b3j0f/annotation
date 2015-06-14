@@ -25,6 +25,10 @@ This library aims to provides tools to do annotation in a reflective language.
 
 .. image:: https://img.shields.io/pypi/wheel/b3j0f.annotation.svg
    :target: https://travis-ci.org/b3j0f/annotation
+   :alt: Download format
+
+.. image:: https://travis-ci.org/b3j0f/annotation.svg?branch=master
+   :target: https://travis-ci.org/b3j0f/annotation
    :alt: Build status
 
 .. image:: https://coveralls.io/repos/b3j0f/annotation/badge.png
@@ -34,6 +38,10 @@ This library aims to provides tools to do annotation in a reflective language.
 .. image:: https://img.shields.io/pypi/dm/b3j0f.annotation.svg
    :target: https://pypi.python.org/pypi/b3j0f.annotation/
    :alt: Downloads
+
+.. image:: https://readthedocs.org/projects/b3j0fannotation/badge/?version=master
+   :target: https://readthedocs.org/projects/b3j0fannotation/?badge=master
+   :alt: Documentation Status
 
 Links
 -----
@@ -79,5 +87,5 @@ Donation
    :alt: I'm grateful for gifts, but don't have a specific funding goal.
 
 .. _Homepage: https://github.com/b3j0f/annotation
-.. _Documentation: http://pythonhosted.org/b3j0f.annotation
+.. _Documentation: http://b3j0fannotation.readthedocs.org/en/master/
 .. _PyPI: https://pypi.python.org/pypi/b3j0f.annotation/

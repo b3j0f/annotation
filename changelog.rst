@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.2 (14/06/2015)
+------------------
+
+- add the folder docs in order to be hosted by readthedocs.
+
 0.2.1 (02/06/2015)
 ------------------
 

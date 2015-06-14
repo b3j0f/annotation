@@ -40,12 +40,13 @@ dependencies = ['b3j0f.aop', 'b3j0f.utils']
 
 keywords = [
     'annotation', 'decorator', 'type', 'check', 'async', 'interceptor', 'oop',
-    'call', 'mixin', 'transform', 'curried', 'retries', 'deprecated'
+    'call', 'mixin', 'transform', 'curried', 'retries', 'deprecated',
+    'reflect', 'reflectivity'
 ]
 
 setup(
     name='b3j0f.annotation',
-    version='0.2.1',
+    version='0.2.2',
     install_requires=dependencies,
     packages=find_packages(exclude=['test.*', '*.test.*']),
     author="b3j0f",
