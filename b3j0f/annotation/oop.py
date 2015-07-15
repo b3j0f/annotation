@@ -28,7 +28,7 @@
 """
 
 from b3j0f.utils.version import PY2
-from b3j0f.annotation import Annotation
+from b3j0f.annotation.core import Annotation
 from b3j0f.annotation.interception import Interceptor, PrivateInterceptor
 
 from types import MethodType
@@ -50,13 +50,10 @@ class Transform(Annotation):
     DICT = 'dict'
     UPDATE = 'update'
 
-    DEFAULT_BASES = (Annotation,)
-    DEFAULT_DICT = {}
-
     __slots__ = (NAME, BASES, DICT, UPDATE) + Annotation.__slots__
 
     def __init__(
-        self, name=None, bases=DEFAULT_BASES, dict=DEFAULT_DICT, update=True
+        self, name=None, bases=None, _dict=None, update=True
     ):
         """
         According to type constructor parameters, you can specifiy name, bases
@@ -70,8 +67,8 @@ class Transform(Annotation):
         """
 
         self.name = name
-        self.bases = bases
-        self.dict = dict
+        self.bases = (Annotation,) if bases is None else bases
+        self.dict = {} if _dict is None else _dict
         self.update = update
 
     def _bind_target(self, target, *args, **kwargs):

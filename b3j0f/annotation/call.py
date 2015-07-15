@@ -216,8 +216,10 @@ class Types(PrivateInterceptor):
                         expected_type):
                     raise Types.TypesError(
                         "wrong typed parameter for arg {0} : {1} ({2}). \
-                        Expected: {3}.".format(
-                        (arg, value, type(value), expected_type))
+                        Expected: {3}."
+                        .format(
+                            arg, value, type(value), expected_type
+                        )
                     )
 
         result = joinpoint.proceed()
@@ -230,10 +232,11 @@ class Types(PrivateInterceptor):
             if not Types.check_value(result, self.rtype):
                 raise Types.TypesError(
                     "wrong result type for {0} with parameters {1}, {2}: {3} \
-                    ({4}). Expected {5}.".
-                    format(
+                    ({4}). Expected {5}."
+                    .format(
                         target, args, kwargs, result, type(result),
-                        self.rtype)
+                        self.rtype
+                    )
                 )
 
         return result
@@ -243,7 +246,8 @@ def types(*args, **kwargs):
     """Quick alias for the Types Annotation with only args and kwargs
     parameters.
 
-    args may contain rtype and kwargs is ptypes.
+    :param tuple args: may contain rtype.
+    :param dict kwargs: may contain ptypes.
     """
 
     rtype = first(args)
@@ -281,10 +285,20 @@ class Curried(PrivateInterceptor):
             self.curried = curried
             self.exception = exception
 
-    def __init__(self, varargs=(), keywords={}, *args, **kwargs):
+    def __init__(self, varargs=None, keywords=None, *args, **kwargs):
+        """
+        :param tuple varargs: function call varargs.
+        :param dict keywords: function call keywords.
+        """
 
         super(Curried, self).__init__(*args, **kwargs)
 
+        # initialize arguments
+        if varargs is None:
+            varargs = ()
+        if keywords is None:
+            keywords = {}
+        # set attributes
         self.args = self.default_args = varargs
         self.kwargs = self.default_kwargs = keywords
 

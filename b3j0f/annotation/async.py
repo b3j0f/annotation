@@ -42,8 +42,8 @@ except ImportError:
 
 from signal import signal, SIGALRM, alarm
 
+from b3j0f.annotation.core import Annotation
 from b3j0f.annotation.interception import PrivateInterceptor
-from b3j0f.annotation import Annotation
 from b3j0f.annotation.oop import Mixin
 
 
@@ -62,11 +62,11 @@ class Synchronized(PrivateInterceptor):
 
         self._lock = RLock() if lock is None else lock
 
-    def _interception(self, annotation, advicesexecutor):
+    def _interception(self, joinpoint, *args, **kwargs):
 
         self._lock.acquire()
 
-        result = advicesexecutor.execute()
+        result = joinpoint.proceed()
 
         self._lock.release()
 
@@ -77,7 +77,7 @@ class SynchronizedClass(Synchronized):
     """Transform a class into a thread safe class.
     """
 
-    def on_bind_target(self, target):
+    def on_bind_target(self, target, ctx=None):
 
         for attribute in target.__dict__:
             if callable(attribute):
@@ -93,7 +93,7 @@ class Asynchronous(Annotation):
         result = self.__wraps(args, kwargs)
         self.queue.put(result)
 
-    def on_bind_target(self, target):
+    def on_bind_target(self, target, ctx=None):
 
         # add start function to wrapper
         super(Asynchronous, self).on_bind_target(target)
@@ -120,6 +120,7 @@ class Asynchronous(Annotation):
 
             super(Asynchronous.Result, self).__init__()
 
+            self.result = None
             self.queue = queue
             self.thread = thread
 
@@ -134,9 +135,10 @@ class Asynchronous(Annotation):
                     self.thread.join(wait)
                 else:
                     raise Asynchronous.NotYetDoneException(
-                        'the call has not yet completed its task')
+                        'the call has not yet completed its task'
+                    )
 
-            if not hasattr(self, 'result'):
+            if self.result is None:
                 self.result = self.queue.get()
 
             return self.result
@@ -147,15 +149,12 @@ class TimeOut(PrivateInterceptor):
     """
 
     class TimeOutError(Exception):
-        """
-        Exception thrown if time elapsed before the end of the target call.
+        """Exception thrown if time elapsed before the end of the target call.
         """
 
-        """
-        Default time out error message.
-        """
+        #: Default time out error message.
         DEFAULT_MESSAGE = \
-            'Call of {0} with parameters {1} and {2} is timed out'
+            'Call of {0} with parameters {1} and {2} is timed out in frame {3}'
 
         def __init__(self, timeout_interceptor, frame):
 
@@ -163,7 +162,9 @@ class TimeOut(PrivateInterceptor):
                 timeout_interceptor.message.format(
                     timeout_interceptor.target,
                     timeout_interceptor.args,
-                    timeout_interceptor.kwargs)
+                    timeout_interceptor.kwargs,
+                    frame
+                )
             )
 
     SECONDS = 'seconds'
@@ -182,16 +183,16 @@ class TimeOut(PrivateInterceptor):
         self.seconds = seconds
         self.error_message = error_message
 
-    def _handle_timeout(self, signum, frame):
+    def _handle_timeout(self, signum=None, frame=None):
 
-        raise TimeOut.TimeOutError(self)
+        raise TimeOut.TimeOutError(self, frame)
 
-    def _interception(self, advicesexecutor):
+    def _interception(self, joinpoint):
 
         signal(SIGALRM, self._handle_timeout)
         alarm(self.seconds)
         try:
-            result = advicesexecutor.execute()
+            result = joinpoint.proceed()
         finally:
             signal.alarm(0)
 
@@ -221,11 +222,11 @@ class Wait(PrivateInterceptor):
         self.before = before
         self.after = after
 
-    def _interception(self, advicesexecutor):
+    def _interception(self, joinpoint):
 
         sleep(self.before)
 
-        result = advicesexecutor.execute()
+        result = joinpoint.proceed()
 
         sleep(self._after_seconds)
 
@@ -236,7 +237,7 @@ class Observable(PrivateInterceptor):
     """Imlementation of the observer design pattern.
 
     It transforms a target into an observable object in adding method
-    registerObserver, unregisterObserver and notify_observers.
+    register_observer, unregister_observer and notify_observers.
     Observers listen to pre/post target interception.
     """
 
@@ -246,40 +247,39 @@ class Observable(PrivateInterceptor):
 
         self.observers = set()
 
-    def registerObserver(self, observer):
-        """
-        Register an observer.
+    def register_observer(self, observer):
+        """Register an observer.
         """
 
         self.observers.add(observer)
 
-    def unregisterObserver(self, observer):
-        """
-        Unregister an observer.
+    def unregister_observer(self, observer):
+        """Unregister an observer.
         """
 
         self.observers.remove(observer)
 
-    def notify_observers(self, target, args, kwargs, result=None, post=False):
-        """
-        Notify observers with parameter calls and information about
+    def notify_observers(self, joinpoint, post=False):
+        """Notify observers with parameter calls and information about
         pre/post call.
         """
 
         _observers = tuple(self.observers)
 
         for observer in _observers:
-            observer.notify(target, args, kwargs, result, post)
+            observer.notify(joinpoint=joinpoint, post=post)
 
-    def on_bind_target(self, target):
-        Mixin.set_mixin(target, self.registerObserver)
-        Mixin.set_mixin(target, self.unregisterObserver)
+    def on_bind_target(self, target, ctx=None):
+        Mixin.set_mixin(target, self.register_observer)
+        Mixin.set_mixin(target, self.unregister_observer)
         Mixin.set_mixin(target, self.notify_observers)
 
-    def _pre_intercepts(self, target, args, kwargs):
-        self._super(Observable)._pre_intercepts(target, args, kwargs)
-        self.notify_observers(target, args, kwargs)
+    def _intercepts(self, joinpoint):
 
-    def _post_intercepts(self, target, args, kwargs, result):
-        self._super(Observable)._post_intercepts(target, args, kwargs)
-        self.notify_observers(target, args, kwargs, result, post=True)
+        self.notify_observers(joinpoint=joinpoint)
+
+        result = joinpoint.proceed()
+
+        self.notify_observers(joinpoint=joinpoint, post=True)
+
+        return result

@@ -28,7 +28,7 @@
 Definition of annotation dedicated to intercept annotated element calls.
 """
 
-from b3j0f.annotation import Annotation
+from b3j0f.annotation.core import Annotation
 from b3j0f.aop.advice import weave, unweave
 
 __all__ = [

@@ -27,7 +27,7 @@
 """Interceptors dedicated to decorate decorations.
 """
 
-from b3j0f.annotation import Annotation
+from b3j0f.annotation.core import Annotation
 from b3j0f.annotation.interception import (
     PrivateInterceptor, PrivateCallInterceptor
 )

@@ -24,10 +24,14 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-__version__ = '0.2.2'  #: project version
+"""Annotation package.
+"""
 
-__all__ = ['Annotation', 'StopPropagation', 'RoutineAnnotation']
+__all__ = [
+    '__version_info__', '__version__'
+]
 
-from b3j0f.annotation.core import (
-    Annotation, StopPropagation, RoutineAnnotation
-)
+#: project version info
+__version_info__ = 0, 2, 2, "beta", 0
+#: project version
+__version__ = ".".join(str(v) for v in __version_info__[:3])
