@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.3 (22/09/2015)
+------------------
+
+- add reference to module members in the main package.
+
 0.2.2 (14/06/2015)
 ------------------
 
