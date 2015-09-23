@@ -43,9 +43,7 @@ from time import sleep
 
 from functools import wraps
 
-__all__ = [
-    'Types', 'types', 'Curried', 'curried', 'Retries'
-]
+__all__ = ['Types', 'types', 'Curried', 'curried', 'Retries']
 
 
 @Target(callable)
@@ -55,40 +53,44 @@ class Types(PrivateInterceptor):
     """
 
     class TypesError(Exception):
-        pass
+        """Handle Types error."""
 
-    class _SpecialCondition(object):
+    class SpecialCondition(object):
+        """Handle SpecialCondition."""
 
         def __init__(self, _type):
 
-            super(Types._SpecialCondition, self).__init__()
+            super(Types.SpecialCondition, self).__init__()
 
             self._type = _type
 
         def get_type(self):
+            """Get special condition parameter type."""
 
             return self._type
 
-    class NotNone(_SpecialCondition):
-        pass
+    class NotNone(SpecialCondition):
+        """Handle NotNone SpecialCondition."""
 
-    class NotEmpty(_SpecialCondition):
-        pass
+    class NotEmpty(SpecialCondition):
+        """Handle NotEmpty SpecialCondition."""
 
-    class _NamedParameterType(object):
+    class NamedParameterType(object):
+        """Handle Named Parameter Type."""
 
         def __init__(self, name, parameter_type):
 
-            super(Types._NamedParameterType, self).__init__()
+            super(Types.NamedParameterType, self).__init__()
 
             self._name = name
             self._parameter_type = parameter_type
 
-    class _NamedParameterTypes(object):
+    class NamedParameterTypes(object):
+        """Handle Named Parameter Types."""
 
         def __init__(self, target, named_parameter_types):
 
-            super(Types._NamedParameterTypes, self).__init__()
+            super(Types.NamedParameterTypes, self).__init__()
 
             self._named_parameter_types = []
 
@@ -99,7 +101,7 @@ class Types(PrivateInterceptor):
                     parameter_type = \
                         named_parameter_types[target_parameter_name]
                     named_parameter_type = \
-                        Types._NamedParameterType(
+                        Types.NamedParameterType(
                             target_parameter_name,
                             parameter_type)
                     self._named_parameter_types.append(named_parameter_type)
@@ -130,6 +132,7 @@ class Types(PrivateInterceptor):
 
     @staticmethod
     def check_value(value, expected_type):
+        """Check Types parameters."""
 
         result = False
 
@@ -184,7 +187,7 @@ class Types(PrivateInterceptor):
 
                             value_length = len(_value)
 
-                            for count in range(value_length):
+                            for _ in range(value_length):
                                 item = _value.pop()
                                 result = Types.check_value(
                                     item,
@@ -210,10 +213,10 @@ class Types(PrivateInterceptor):
                 value = callargs[arg]
                 expected_type = self.ptypes.get(arg)
 
-                if expected_type is not None and \
-                    not Types.check_value(
-                        value,
-                        expected_type):
+                if (
+                        expected_type is not None and
+                        not Types.check_value(value, expected_type)
+                ):
                     raise Types.TypesError(
                         "wrong typed parameter for arg {0} : {1} ({2}). \
                         Expected: {3}."
@@ -273,8 +276,7 @@ class Curried(PrivateInterceptor):
     ) + PrivateInterceptor.__slots__
 
     class CurriedResult(object):
-        """Curried result in case of missing arguments.
-        """
+        """Curried result in case of missing arguments."""
 
         __slots__ = ('curried', 'exception')
 
@@ -305,11 +307,13 @@ class Curried(PrivateInterceptor):
     def _bind_target(self, target, *args, **kwargs):
 
         @wraps(target)
-        def f(*args, **kwargs):
+        def wrapper(*args, **kwargs):
+            """Target wrapper."""
+
             return target(*args, **kwargs)
 
         result = super(Curried, self)._bind_target(
-            target=f, *args, **kwargs
+            target=wrapper, *args, **kwargs
         )
 
         return result
@@ -332,9 +336,9 @@ class Curried(PrivateInterceptor):
             joinpoint.args = self.args
             joinpoint.kwargs = self.kwargs
             result = joinpoint.proceed()
-        except TypeError as te:
+        except TypeError as ex:
             # in case of problem, returns curried decorater and exception
-            result = Curried.CurriedResult(self, te)
+            result = Curried.CurriedResult(self, ex)
 
         return result
 
@@ -387,18 +391,22 @@ class Retries(PrivateInterceptor):
     EXCEPTIONS = 'exceptions'
     HOOK = 'hook'
 
+    DEFAULT_DELAY = 1
+    DEFAULT_BACKOFF = 2
+    DEFAULT_EXCEPTIONS = (Exception,)
+
     __slots__ = (
         MAX_TRIES, DELAY, BACKOFF, EXCEPTIONS, HOOK
     ) + PrivateInterceptor.__slots__
 
     def __init__(
-        self,
-        max_tries,
-        delay=1,
-        backoff=2,
-        exceptions=(Exception,),
-        hook=None,
-        *args, **kwargs
+            self,
+            max_tries,
+            delay=DEFAULT_DELAY,
+            backoff=DEFAULT_BACKOFF,
+            exceptions=DEFAULT_EXCEPTIONS,
+            hook=None,
+            *args, **kwargs
     ):
 
         super(Retries, self).__init__(*args, **kwargs)
@@ -422,12 +430,12 @@ class Retries(PrivateInterceptor):
             try:
                 result = joinpoint.proceed()
 
-            except self.exceptions as e:
+            except self.exceptions as ex:
 
                 if tries_remaining > 0:
 
                     if self.hook is not None:
-                        self.hook(tries_remaining, e, mydelay)
+                        self.hook(tries_remaining, ex, mydelay)
 
                     sleep(mydelay)
                     mydelay = mydelay * self.backoff

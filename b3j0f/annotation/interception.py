@@ -24,12 +24,11 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-"""
-Definition of annotation dedicated to intercept annotated element calls.
+"""Definition of annotation dedicated to intercept annotated element calls.
 """
 
 from b3j0f.annotation.core import Annotation
-from b3j0f.aop.advice import weave, unweave
+from b3j0f.aop import weave, unweave
 
 __all__ = [
     'Interceptor',
@@ -65,13 +64,11 @@ class Interceptor(Annotation):
     ) + Annotation.__slots__
 
     class InterceptorError(Exception):
-        """Handle Interceptor errors.
-        """
-
-        pass
+        """Handle Interceptor errors."""
 
     def __init__(
-        self, interception=None, pointcut=None, enable=True, *args, **kwargs
+            self, interception=None, pointcut=None, enable=True,
+            *args, **kwargs
     ):
         """Default constructor with interception function and enable property.
 
@@ -84,17 +81,19 @@ class Interceptor(Annotation):
 
         super(Interceptor, self).__init__(*args, **kwargs)
 
-        setattr(self, Interceptor.INTERCEPTION, interception)
-        setattr(self, Interceptor._POINTCUT, pointcut)
-        setattr(self, Interceptor.ENABLE, enable)
+        self.interception = interception
+        self._pointcut = pointcut
+        self.enable = enable
 
     @property
     def pointcut(self):
+        """Get pointcut."""
+
         return self._pointcut
 
     @pointcut.setter
     def pointcut(self, value):
-        """Change of pointcut
+        """Change of pointcut.
         """
 
         pointcut = getattr(self, Interceptor.POINTCUT)
@@ -110,8 +109,7 @@ class Interceptor(Annotation):
         setattr(self, Interceptor._POINTCUT, value)
 
     def _bind_target(self, target, ctx=None, *args, **kwargs):
-        """Weave self.intercepts among target advices with pointcut
-        """
+        """Weave self.intercepts among target advices with pointcut."""
 
         result = super(Interceptor, self)._bind_target(
             target=target, *args, **kwargs
@@ -153,11 +151,10 @@ class Interceptor(Annotation):
         return result
 
     @classmethod
-    def set_enable(interceptor_type, target, enable=True):
-        """(Dis|En)able annotated interceptors.
-        """
+    def set_enable(cls, target, enable=True):
+        """(Dis|En)able annotated interceptors."""
 
-        interceptors = interceptor_type.get_annotations(target)
+        interceptors = cls.get_annotations(target)
 
         for interceptor in interceptors:
             setattr(interceptor, Interceptor.ENABLE, enable)

@@ -24,8 +24,7 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-"""Annotations dedicated to object oriented programming.
-"""
+"""Annotations dedicated to object oriented programming."""
 
 from b3j0f.utils.version import PY2
 from b3j0f.annotation.core import Annotation
@@ -53,25 +52,27 @@ class Transform(Annotation):
     __slots__ = (NAME, BASES, DICT, UPDATE) + Annotation.__slots__
 
     def __init__(
-        self, name=None, bases=None, _dict=None, update=True
+            self, name=None, bases=None, _dict=None, update=True,
+            *args, **kwargs
     ):
-        """
-        According to type constructor parameters, you can specifiy name, bases
-        and dict.
+        """According to type constructor parameters, you can specifiy name,
+        bases and dict.
 
         :param str name: new class name.
         :param tuple bases: new class bases.
         :param dict dict: class __dict__.
         :param bool update: if True, update new properties on the new class.
-        Else replace old ones.
+            Otherwise replace old ones.
         """
+
+        super(Transform, self).__init__(*args, **kwargs)
 
         self.name = name
         self.bases = (Annotation,) if bases is None else bases
         self.dict = {} if _dict is None else _dict
         self.update = update
 
-    def _bind_target(self, target, *args, **kwargs):
+    def _bind_target(self, target, ctx=None):
 
         result = target
         # do something only for class objects
@@ -80,18 +81,21 @@ class Transform(Annotation):
             name = target.__name__ if self.name is None else self.name
             # if update is True, update target properties
             bases = tuple(set((target,) + self.bases))
+
             if self.update:
-                dict = target.__dict__.copy()
-                dict.update(self.dict)
+                _dict = target.__dict__.copy()
+                _dict.update(self.dict)
+
             else:  # else use new properties
-                dict = self.dict
+                _dict = self.dict
+
             # get the new type related to name, bases and dict
-            result = type(name, bases, dict)
+            result = type(name, bases, _dict)
+
         else:
             raise TypeError(
-                'Wrong annotated element type {0}, class expected.'.format(
-                    target
-                )
+                'Wrong annotated element type {0}, class expected.'
+                .format(target)
             )
 
         return result
@@ -105,11 +109,7 @@ class Mixin(Annotation):
     """
 
     class MixInError(Exception):
-        """
-        Raised for any Mixin error.
-        """
-
-        pass
+        """Raised for any Mixin error."""
 
     #: key to organize a dictionary of mixed elements by name in targets.
     __MIXEDIN_KEY__ = '__MIXEDIN__'
@@ -117,7 +117,7 @@ class Mixin(Annotation):
     #: Key to identify if a mixin add or replace a content.
     __NEW_CONTENT_KEY__ = '__NEW_CONTENT__'
 
-    def __init__(self, classes=tuple(), *attributes, **named_attributes):
+    def __init__(self, classes=(), *attributes, **named_attributes):
 
         super(Mixin, self).__init__()
 
@@ -125,7 +125,7 @@ class Mixin(Annotation):
         self.attributes = attributes
         self.named_attributes = named_attributes
 
-    def on_bind_target(self, target, ctx, *args, **kwargs):
+    def on_bind_target(self, target, ctx=None):
 
         super(Mixin, self).on_bind_target(target)
 
@@ -141,16 +141,13 @@ class Mixin(Annotation):
 
     @staticmethod
     def mixin_class(target, cls):
-        """Mix cls content in target.
-        """
+        """Mix cls content in target."""
 
         for name, field in getmembers(cls):
             Mixin.mixin(target, field, name)
 
     @staticmethod
-    def mixin_function_or_method(
-        target, fm, name=None, bound_method=False
-    ):
+    def mixin_function_or_method(target, fm, name=None, bound_method=False):
         """Mixin a function or a method into the target.
 
         If name is not given, then the fm name is used.
@@ -162,8 +159,10 @@ class Mixin(Annotation):
 
         if isfunction(fm):
             function = fm
+
         elif ismethod(fm):
             function = fm.__func__
+
         else:
             raise Mixin.MixInError(
                 "{0} must be a function or a method.".format(fm))
@@ -175,12 +174,17 @@ class Mixin(Annotation):
             _type = type(target)
             _type = Interceptor.get_source_target(_type)
             method_args = [function, target]
+
             if PY2:
                 method_args += _type
+
             result = MethodType(*method_args)
+
         else:
+
             if PY2:
                 result = MethodType(function, None, target)
+
             else:
                 result = function
 
@@ -203,14 +207,19 @@ class Mixin(Annotation):
 
         if ismethod(resource) or isfunction(resource):
             result = Mixin.mixin_function_or_method(target, resource, name)
+
         elif isclass(resource):
             result = list()
+
             for name, content in getmembers(resource):
                 if isclass(content):
                     mixin = Mixin.set_mixin(target, content, name)
+
                 else:
                     mixin = Mixin.mixin(target, content, name)
+
                 result.append(mixin)
+
         else:
             result = Mixin.set_mixin(target, resource, name)
 
@@ -218,8 +227,7 @@ class Mixin(Annotation):
 
     @staticmethod
     def get_mixedins_by_name(target):
-        """Get a set of couple (name, field) of target mixedin.
-        """
+        """Get a set of couple (name, field) of target mixedin."""
 
         result = getattr(target, Mixin.__MIXEDIN_KEY__, None)
 
@@ -262,13 +270,17 @@ class Mixin(Annotation):
 
             try:
                 setattr(target, name, resource)
-            except Exception:
+
+            except AttributeError:
+
                 if len(mixedins_by_name[name]) == 1:
                     del mixedins_by_name[name]
                     if len(mixedins_by_name) == 0:
                         delattr(target, Mixin.__MIXEDIN_KEY__)
+
                 else:
                     mixedins_by_name[name] = mixedins_by_name[name][:-2]
+
                 result = None
         else:
             result = None
@@ -276,51 +288,63 @@ class Mixin(Annotation):
         return result
 
     @staticmethod
-    def remove_mixin(target, name, mixedin=None, set=True):
+    def remove_mixin(target, name, mixedin=None, replace=True):
         """Remove a mixin with name (and reference) from targetand returns the
         replaced one or None.
 
         The mixedin parameter designates a mixedin value or the last defined
         mixedin if is None (default).
-        If set is True (default), the removed mixedin replaces
-        the current mixin.
+        If replace is True (default), the removed mixedin replaces the current
+        mixin.
         """
 
         try:
             result = getattr(target, name)
+
         except AttributeError:
             raise Mixin.MixInError(
-                "No mixin {0} exists in {1}".format(name, target))
+                "No mixin {0} exists in {1}".format(name, target)
+            )
 
         mixedins_by_name = Mixin.get_mixedins_by_name(target)
 
         mixedins = mixedins_by_name.get(name)
+
         if mixedins:
 
             if mixedin is None:
                 mixedin = mixedins[-1]
                 mixedins = mixedins[:-2]
+
             else:
+
                 try:
                     index = mixedins.index(mixedin)
+
                 except ValueError:
                     raise Mixin.MixInError(
                         "Mixedin {0} with name {1} does not exist \
                         in target {2}"
-                        .format(mixedin, name, target))
+                        .format(mixedin, name, target)
+                    )
+
                 mixedins = mixedins[0:index] + mixedins[index + 1:]
 
             if len(mixedins) == 0:
-                # force to replace/delete the mixin even if set is False
+                # force to replace/delete the mixin even if replace is False
                 # in order to stay in a consistent state
                 if mixedin != Mixin.__NEW_CONTENT_KEY__:
                     setattr(target, name, mixedin)
+
                 else:
                     delattr(target, name)
+
                 del mixedins_by_name[name]
+
             else:
-                if set:
+                if replace:
                     setattr(target, name, mixedin)
+
                 mixedins_by_name[name] = mixedins
 
         else:
@@ -353,8 +377,7 @@ class Mixin(Annotation):
 
 
 class MethodMixin(Annotation):
-    """Apply a mixin on a method.
-    """
+    """Apply a mixin on a method."""
 
     def __init__(self, function, *args, **kwargs):
 
@@ -375,10 +398,12 @@ class MethodMixin(Annotation):
             result = target
 
         else:
+
             if ctx is not None:
                 cls = ctx
                 name = target.__name__
                 Mixin.mixin_function_or_method(cls, self.function, name)
+
             result = self.function
 
         return result
@@ -389,7 +414,7 @@ class Deprecated(PrivateInterceptor):
     result in a warning being emitted when the function is used.
     """
 
-    def _interception(self, joinpoint, *args, **kwargs):
+    def _interception(self, joinpoint):
 
         target = joinpoint.target
         warn_explicit(

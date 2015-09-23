@@ -120,9 +120,9 @@ class Annotation(object):
     __ANNOTATIONS_IN_MEMORY__ = {}
 
     def __init__(
-        self,
-        on_bind_target=None, propagate=True, override=False, ttl=None,
-        in_memory=False
+            self,
+            on_bind_target=None, propagate=True, override=False, ttl=None,
+            in_memory=False
     ):
         """Default constructor with an 'on_bind_target' handler and propagate
         scope property.
@@ -175,6 +175,7 @@ class Annotation(object):
                 # remove self from target
                 try:
                     self.remove_from(target)
+
                 except TypeError:
                     # raised if target is not hashable
                     pass
@@ -212,11 +213,13 @@ class Annotation(object):
 
         # get timer
         timer = getattr(self, Annotation.__TIMER, None)
+
         # if timer is running, stop the timer
         if timer is not None:
             timer.cancel()
+
         # initialize timestamp
-        ts = None
+        timestamp = None
 
         # if value is None
         if value is None:
@@ -224,15 +227,15 @@ class Annotation(object):
             timer = None
 
         else:  # else, renew a timer
-            # get ts
-            ts = time() + value
+            # get timestamp
+            timestamp = time() + value
             # start a new timer
             timer = Timer(value, self.__del__)
             timer.start()
             # set/update attributes
 
         setattr(self, Annotation.__TIMER, timer)
-        setattr(self, Annotation.__TS, ts)
+        setattr(self, Annotation.__TS, timestamp)
 
     @property
     def in_memory(self):
@@ -257,9 +260,11 @@ class Annotation(object):
 
         self_class = self.__class__
         memory = Annotation.__ANNOTATIONS_IN_MEMORY__
+
         if value:
             annotations_memory = memory.setdefault(self_class, set())
             annotations_memory.add(self)
+
         else:
             if self_class in memory:
                 annotations_memory = memory[self_class]
@@ -361,7 +366,7 @@ class Annotation(object):
                     del_properties(target, annotations_key)
 
     @classmethod
-    def free_memory(annotation_type, exclude=None):
+    def free_memory(cls, exclude=None):
         """Free global annotation memory.
         """
 
@@ -374,15 +379,15 @@ class Annotation(object):
             if issubclass(annotation_cls, exclude):
                 continue
 
-            if issubclass(annotation_cls, annotation_type):
+            if issubclass(annotation_cls, cls):
                 del annotations_in_memory[annotation_cls]
 
     @classmethod
-    def get_memory_annotations(annotation_type, exclude=None):
-        """Get annotations in memory which inherits from annotation_type.
+    def get_memory_annotations(cls, exclude=None):
+        """Get annotations in memory which inherits from cls.
 
         :param tuple/type exclude: annotation type(s) to exclude from search.
-        :return: found annotations which inherits from annotation_type.
+        :return: found annotations which inherits from cls.
         :rtype: set
         """
 
@@ -401,19 +406,19 @@ class Annotation(object):
                 continue
 
             # if annotation class inherits from self, add it in the result
-            if issubclass(annotation_cls, annotation_type):
+            if issubclass(annotation_cls, cls):
                 result |= annotations_in_memory[annotation_cls]
 
         return result
 
     @classmethod
     def get_local_annotations(
-        annotation_type, target, exclude=None, ctx=None, select=lambda *p: True
+            cls, target, exclude=None, ctx=None, select=lambda *p: True
     ):
         """Get a list of local target annotations in the order of their
             definition.
 
-        :param type annotation_type: type of annotation to get from target.
+        :param type cls: type of annotation to get from target.
         :param target: target from where get annotations.
         :param tuple/type exclude: annotation types to exclude from selection.
         :param ctx: target ctx.
@@ -456,8 +461,8 @@ class Annotation(object):
             raise TypeError('target {0} must be hashable'.format(target))
 
         for local_annotation in local_annotations:
-            # check if local annotation inherits from annotation_type
-            inherited = isinstance(local_annotation, annotation_type)
+            # check if local annotation inherits from cls
+            inherited = isinstance(local_annotation, cls)
             # and if not excluded
             not_excluded = not isinstance(local_annotation, exclude)
             # and if selected
@@ -469,13 +474,11 @@ class Annotation(object):
         return result
 
     @classmethod
-    def remove(
-        annotation_type, target, exclude=None, ctx=None, select=lambda *p: True
-    ):
-        """Remove from target annotations which inherit from annotation_type.
+    def remove(cls, target, exclude=None, ctx=None, select=lambda *p: True):
+        """Remove from target annotations which inherit from cls.
 
         :param target: target from where remove annotations which inherits from
-            annotation_type.
+            cls.
         :param tuple/type exclude: annotation types to exclude from selection.
         :param ctx: target ctx.
         :param select: annotation selection function which takes in parameters
@@ -491,17 +494,18 @@ class Annotation(object):
             local_annotations = get_local_property(
                 target, Annotation.__ANNOTATIONS_KEY__
             )
+
         except TypeError:
             raise TypeError('target {0} must be hashable'.format(target))
 
         # if there are local annotations
         if local_annotations is not None:
 
-            # get annotations to remove which inherits from annotation_type
+            # get annotations to remove which inherits from cls
             annotations_to_remove = [
                 annotation for annotation in local_annotations
                 if (
-                    isinstance(annotation, annotation_type)
+                    isinstance(annotation, cls)
                     and not isinstance(annotation, exclude)
                     and select(target, ctx, annotation)
                 )
@@ -513,12 +517,12 @@ class Annotation(object):
 
     @classmethod
     def get_annotations(
-        annotation_type, target, exclude=None, ctx=None, select=lambda *p: True
+            cls, target, exclude=None, ctx=None, select=lambda *p: True
     ):
-        """Returns all input target annotations of annotation_type type sorted
+        """Returns all input target annotations of cls type sorted
         by definition order.
 
-        :param type annotation_type: type of annotation to get from target.
+        :param type cls: type of annotation to get from target.
         :param target: target from where get annotations.
         :param tuple/type exclude: annotation types to remove from selection.
         :param ctx: target ctx.
@@ -569,7 +573,7 @@ class Annotation(object):
                     exclude += (annotation.__class__, )
 
                 # check for annotation
-                if (isinstance(annotation, annotation_type)
+                if (isinstance(annotation, cls)
                         and not isinstance(annotation, exclude)
                         and select(target, ctx, annotation)):
 
@@ -578,10 +582,8 @@ class Annotation(object):
         return result
 
     @classmethod
-    def get_annotated_fields(
-        annotation_type, instance, select=lambda *p: True
-    ):
-        """Get dict of {annotated fields: annotations} by annotation_type of
+    def get_annotated_fields(cls, instance, select=lambda *p: True):
+        """Get dict of {annotated fields: annotations} by cls of
         input instance.
 
         :return: a set of (annotated fields, annotations).
@@ -590,17 +592,21 @@ class Annotation(object):
 
         result = {}
 
-        for name, member in getmembers(instance):
+        for _, member in getmembers(instance):
             try:
-                annotations = annotation_type.get_annotations(
+                annotations = cls.get_annotations(
                     target=member, ctx=instance, select=select
                 )
+
             except TypeError:
                 pass
+
             else:
+
                 try:
                     if annotations:
                         result[member] = annotations
+
                 except TypeError:  # if field is an object proxy
                     pass
 
@@ -641,7 +647,7 @@ class RoutineAnnotation(Annotation):
     __slots__ = (ROUTINE, RESULT, PARAMS) + Annotation.__slots__
 
     def __init__(
-        self, routine=None, params=None, result=None, *args, **kwargs
+            self, routine=None, params=None, result=None, *args, **kwargs
     ):
         """
         :param routine: routine information.

@@ -41,30 +41,16 @@ __all__ = ['Condition', 'MaxCount', 'Target']
 
 
 class Condition(PrivateInterceptor):
-    """
-    Apply a pre/post condition on an annotated element call.
-    """
+    """Apply a pre/post condition on an annotated element call."""
 
     class ConditionError(Exception):
-        """
-        Handle condition errors
-        """
-
-        pass
+        """Handle condition errors."""
 
     class PreConditionError(ConditionError):
-        """
-        Handle pre condition errors
-        """
-
-        pass
+        """Handle pre condition errors."""
 
     class PostConditionError(ConditionError):
-        """
-        Handle post condition errors
-        """
-
-        pass
+        """Handle post condition errors."""
 
     #: pre condition attribute name
     PRE_COND = 'pre_cond'
@@ -90,7 +76,7 @@ class Condition(PrivateInterceptor):
         self.pre_cond = pre_cond
         self.post_cond = post_cond
 
-    def _interception(self, joinpoint, *args, **kwargs):
+    def _interception(self, joinpoint):
         """Intercept call of joinpoint callee in doing pre/post conditions.
         """
 
@@ -107,8 +93,8 @@ class Condition(PrivateInterceptor):
 
 
 class AnnotationChecker(PrivateInterceptor):
-    """Annotation dedicated to intercept annotation target binding.
-    """
+    """Annotation dedicated to intercept annotation target binding."""
+
     __slots = PrivateCallInterceptor.__slots__
 
     #: bind_target pointcut
@@ -126,7 +112,7 @@ class MaxCount(AnnotationChecker):
     """
 
     class Error(Exception):
-        pass
+        """Handle MaxCount errors."""
 
     __COUNT_KEY__ = 'count'
 
@@ -143,7 +129,7 @@ class MaxCount(AnnotationChecker):
 
         self.count = MaxCount.DEFAULT_COUNT if count is None else count
 
-    def _interception(self, joinpoint, *args, **kwargs):
+    def _interception(self, joinpoint):
 
         target = joinpoint.kwargs['target']
         annotation = joinpoint.kwargs['self']
@@ -177,14 +163,14 @@ class Target(AnnotationChecker):
     """
 
     class Error(Exception):
-        pass
+        """Handle Target errors."""
 
-    FUNC = FunctionType  #: function type
-    CALLABLE = callable  #: callable type
-    ROUTINE = 'routine'  #: routine type
+    FUNC = FunctionType  #: function type.
+    CALLABLE = callable  #: callable type.
+    ROUTINE = 'routine'  #: routine type.
 
-    OR = 'or'  #: or rule
-    AND = 'and'  #: and rule
+    OR = 'or'  #: or rule.
+    AND = 'and'  #: and rule.
 
     DEFAULT_RULE = OR  #: default rule
     DEFAULT_INSTANCES = False  #: default instances condition
@@ -196,7 +182,8 @@ class Target(AnnotationChecker):
     __slots__ = (TYPES, RULE, INSTANCES) + PrivateCallInterceptor.__slots__
 
     def __init__(
-        self, types=None, rule=DEFAULT_RULE, instances=False, *args, **kwargs
+            self, types=None, rule=DEFAULT_RULE, instances=False,
+            *args, **kwargs
     ):
         """
         :param types: type(s) to check. The function ``callable`` can be used.
@@ -210,9 +197,9 @@ class Target(AnnotationChecker):
         self.rule = rule
         self.instances = instances
 
-    def _interception(self, joinpoint, *args, **kwargs):
+    def _interception(self, joinpoint):
 
-        raiseException = self.rule == Target.OR
+        raiseexception = self.rule == Target.OR
 
         target = joinpoint.kwargs['target']
         annotation = joinpoint.kwargs['self']
@@ -230,14 +217,14 @@ class Target(AnnotationChecker):
                     and ((isclass(target) and issubclass(target, _type))
                     or (self.instances and isinstance(target, _type))))):
                 if self.rule == Target.OR:
-                    raiseException = False
+                    raiseexception = False
                     break
 
             elif self.rule == Target.AND:
-                raiseException = True
+                raiseexception = True
                 break
 
-        if raiseException:
+        if raiseexception:
             Interceptor_type = type(annotation)
 
             raise Target.Error(

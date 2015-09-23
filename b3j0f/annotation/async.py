@@ -30,7 +30,7 @@ Decorators dedicated to asynchronous programming.
 
 try:
     from threading import Thread, RLock
-except ImportError as IE:
+except ImportError:
     from dummythreading import Thread, RLock
 
 from time import sleep
@@ -53,8 +53,7 @@ __all__ = [
 
 
 class Synchronized(PrivateInterceptor):
-    """Transform a target into a thread safe target.
-    """
+    """Transform a target into a thread safe target."""
 
     #: lock attribute name
     _LOCK = '_lock'
@@ -67,7 +66,7 @@ class Synchronized(PrivateInterceptor):
 
         self._lock = RLock() if lock is None else lock
 
-    def _interception(self, joinpoint, *args, **kwargs):
+    def _interception(self, joinpoint):
 
         self._lock.acquire()
 
@@ -79,8 +78,7 @@ class Synchronized(PrivateInterceptor):
 
 
 class SynchronizedClass(Synchronized):
-    """Transform a class into a thread safe class.
-    """
+    """Transform a class into a thread safe class."""
 
     def on_bind_target(self, target, ctx=None):
 
@@ -90,36 +88,44 @@ class SynchronizedClass(Synchronized):
 
 
 class Asynchronous(Annotation):
-    """Transform a target into an asynchronous callable target.
-    """
+    """Transform a target into an asynchronous callable target."""
 
-    def threaded(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
 
-        result = self.__wraps(args, kwargs)
-        self.queue.put(result)
+        super(Asynchronous, self).__init__(*args, **kwargs)
+
+        self.queue = None
+
+    def _threaded(self, *args, **kwargs):
+        """Call the target and put the result in the Queue."""
+
+        for target in self.targets:
+            result = target(*args, **kwargs)
+            self.queue.put(result)
 
     def on_bind_target(self, target, ctx=None):
 
         # add start function to wrapper
-        super(Asynchronous, self).on_bind_target(target)
+        super(Asynchronous, self).on_bind_target(target, ctx=ctx)
 
         setattr(target, 'start', self.start)
 
     def start(self, *args, **kwargs):
+        """Start execution of the function."""
 
         self.queue = Queue()
-        thread = Thread(target=self.threaded, args=args, kwargs=kwargs)
+        thread = Thread(target=self._threaded, args=args, kwargs=kwargs)
         thread.start()
 
         return Asynchronous.Result(self.queue, thread)
 
     class NotYetDoneException(Exception):
-
-        pass
+        """Handle when a result is not yet available."""
 
     class Result(object):
+        """In charge of receive asynchronous function result."""
 
-        __slots__ = ('queue', 'thread')
+        __slots__ = ('queue', 'thread', 'result')
 
         def __init__(self, queue, thread):
 
@@ -130,14 +136,24 @@ class Asynchronous(Annotation):
             self.thread = thread
 
         def is_done(self):
+            """True if result is available."""
 
             return not self.thread.is_alive()
 
         def get_result(self, wait=-1):
+            """Get result value.
+
+            Wait for it if necessary.
+
+            :param int wait: maximum wait time.
+            :return: result value.
+            """
 
             if not self.is_done():
+
                 if wait >= 0:
                     self.thread.join(wait)
+
                 else:
                     raise Asynchronous.NotYetDoneException(
                         'the call has not yet completed its task'
@@ -178,9 +194,9 @@ class TimeOut(PrivateInterceptor):
     __slots__ = (SECONDS, ERROR_MESSAGE) + PrivateInterceptor.__slots__
 
     def __init__(
-        self,
-        seconds, error_message=TimeOutError.DEFAULT_MESSAGE,
-        *args, **kwargs
+            self,
+            seconds, error_message=TimeOutError.DEFAULT_MESSAGE,
+            *args, **kwargs
     ):
 
         super(TimeOut, self).__init__(*args, **kwargs)
@@ -188,7 +204,8 @@ class TimeOut(PrivateInterceptor):
         self.seconds = seconds
         self.error_message = error_message
 
-    def _handle_timeout(self, signum=None, frame=None):
+    def _handle_timeout(self, frame=None, **_):
+        """Sig ALARM timeout function."""
 
         raise TimeOut.TimeOutError(self, frame)
 
@@ -196,30 +213,30 @@ class TimeOut(PrivateInterceptor):
 
         signal(SIGALRM, self._handle_timeout)
         alarm(self.seconds)
+
         try:
             result = joinpoint.proceed()
+
         finally:
-            signal.alarm(0)
+            alarm(0)
 
         return result
 
 
 class Wait(PrivateInterceptor):
-    """Define a time to wait before and after a target call.
-    """
+    """Define a time to wait before and after a target call."""
 
-    DEFAULT_WAIT = 1
+    DEFAULT_BEFORE = 1  #: default seconds to wait before the target call.
+    DEFAULT_AFTER = 1  #: default seconds to wait after the target call.
 
-    #: before attribute name
-    BEFORE = 'before'
+    BEFORE = 'before'  #: before attribute name.
 
-    #: after attribute name
-    AFTER = 'after'
+    AFTER = 'after'  #: after attribute name.
 
     __slots__ = (BEFORE, AFTER) + PrivateInterceptor.__slots__
 
     def __init__(
-        self, before=DEFAULT_WAIT, after=DEFAULT_WAIT, *args, **kwargs
+            self, before=DEFAULT_BEFORE, after=DEFAULT_AFTER, *args, **kwargs
     ):
 
         super(Wait, self).__init__(*args, **kwargs)
@@ -233,7 +250,7 @@ class Wait(PrivateInterceptor):
 
         result = joinpoint.proceed()
 
-        sleep(self._after_seconds)
+        sleep(self.after)
 
         return result
 
@@ -253,14 +270,12 @@ class Observable(PrivateInterceptor):
         self.observers = set()
 
     def register_observer(self, observer):
-        """Register an observer.
-        """
+        """Register an observer."""
 
         self.observers.add(observer)
 
     def unregister_observer(self, observer):
-        """Unregister an observer.
-        """
+        """Unregister an observer."""
 
         self.observers.remove(observer)
 
@@ -275,11 +290,12 @@ class Observable(PrivateInterceptor):
             observer.notify(joinpoint=joinpoint, post=post)
 
     def on_bind_target(self, target, ctx=None):
+
         Mixin.set_mixin(target, self.register_observer)
         Mixin.set_mixin(target, self.unregister_observer)
         Mixin.set_mixin(target, self.notify_observers)
 
-    def _intercepts(self, joinpoint):
+    def _interception(self, joinpoint):
 
         self.notify_observers(joinpoint=joinpoint)
 
