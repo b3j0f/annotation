@@ -271,7 +271,7 @@ class Mixin(Annotation):
             try:
                 setattr(target, name, resource)
 
-            except AttributeError:
+            except (AttributeError, TypeError):
 
                 if len(mixedins_by_name[name]) == 1:
                     del mixedins_by_name[name]
