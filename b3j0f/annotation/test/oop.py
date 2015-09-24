@@ -82,7 +82,7 @@ class OOPTests(UTCase):
 
         self.assertEqual(len(mixedins_by_name), 3)
 
-        Mixin.remove_all_mixins(A)
+        Mixin.remove_mixins(A)
 
         mixedins_by_name = Mixin.get_mixedins_by_name(A)
 
@@ -122,7 +122,7 @@ class OOPTests(UTCase):
         self.assertEqual(mixedInstance.get_3(), a)
         self.assertIs(mixedInstance.get_1(), 1)
 
-        Mixin.remove_all_mixins(MixedInClass)
+        Mixin.remove_mixins(MixedInClass)
         self.assertEqual(mixedInstance.get_3(), 3)
         self.assertIs(mixedInstance.get_1(), '1')
 
@@ -164,7 +164,7 @@ class OOPTests(UTCase):
 
         self.assertIsNone(mixedInstance.get_1())
 
-        Mixin.remove_all_mixins(MixedInClass)
+        Mixin.remove_mixins(MixedInClass)
 
         self.assertEqual(mixedInstance.get_1(), 1)
 
