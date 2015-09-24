@@ -28,7 +28,7 @@
 
 from b3j0f.utils.version import PY2
 from b3j0f.annotation.core import Annotation
-from b3j0f.annotation.interception import Interceptor, PrivateInterceptor
+from b3j0f.annotation.interception import PrivateInterceptor
 
 from types import MethodType
 
@@ -147,32 +147,32 @@ class Mixin(Annotation):
             Mixin.mixin(target, field, name)
 
     @staticmethod
-    def mixin_function_or_method(target, fm, name=None, bound_method=False):
-        """Mixin a function or a method into the target.
+    def mixin_function_or_method(target, routine, name=None, isbound=False):
+        """Mixin a routine into the target.
 
-        If name is not given, then the fm name is used.
-        If bound method is True (False by default), the mixin result is a bound
-        method to target.
+        :param routine: routine to mix in target.
+        :param str name: mixin name. Routine name by default.
+        :param bool isbound: If True (False by default), the mixin result is a
+            bound method to target.
         """
 
         function = None
 
-        if isfunction(fm):
-            function = fm
+        if isfunction(routine):
+            function = routine
 
-        elif ismethod(fm):
-            function = fm.__func__
+        elif ismethod(routine):
+            function = routine.__func__
 
         else:
             raise Mixin.MixInError(
-                "{0} must be a function or a method.".format(fm))
+                "{0} must be a function or a method.".format(routine))
 
         if name is None:
-            name = fm.__name__
+            name = routine.__name__
 
-        if not isclass(target) or bound_method:
+        if not isclass(target) or isbound:
             _type = type(target)
-            _type = Interceptor.get_source_target(_type)
             method_args = [function, target]
 
             if PY2:
@@ -242,10 +242,9 @@ class Mixin(Annotation):
         """Set a resource and returns the mixed one in target content or
         Mixin.__NEW_CONTENT_KEY__ if resource name didn't exist in target.
 
-        The optional input property name designates the target content item
-        to mix with the resource.
-        The override parameter (True by default) permits to replace an old
-        resource by the new one.
+        :param str name: target content item to mix with the resource.
+        :param bool override: If True (default) permits to replace an old
+            resource by the new one.
         """
 
         if name is None and not hasattr(resource, '__name__'):
@@ -292,10 +291,10 @@ class Mixin(Annotation):
         """Remove a mixin with name (and reference) from targetand returns the
         replaced one or None.
 
-        The mixedin parameter designates a mixedin value or the last defined
-        mixedin if is None (default).
-        If replace is True (default), the removed mixedin replaces the current
-        mixin.
+        :param mixedin: a mixedin value or the last defined mixedin if is None
+            (by default).
+        :param bool replace: If True (default), the removed mixedin replaces
+            the current mixin.
         """
 
         try:
@@ -360,20 +359,18 @@ class Mixin(Annotation):
         return result
 
     @staticmethod
-    def remove_all_mixins(target, name=None):
+    def remove_mixins(target):
         """Tries to get back target in a no mixin consistent state.
-        If name is given, then all mixin related to input name may be removed.
         """
 
         mixedins_by_name = Mixin.get_mixedins_by_name(target).copy()
 
-        for _name in mixedins_by_name:
-            if name is None or name == _name:
+        for _name in mixedins_by_name:  # for all named mixins
+            while True:  # remove all mixins named _name
                 try:
-                    while True:
-                        Mixin.remove_mixin(target, _name)
+                    Mixin.remove_mixin(target, _name)
                 except Mixin.MixInError:
-                    pass
+                    break  # leave the loop 'while'
 
 
 class MethodMixin(Annotation):
