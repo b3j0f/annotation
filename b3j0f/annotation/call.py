@@ -31,6 +31,7 @@ Decorators dedicated to class or functions calls.
 from b3j0f.annotation.interception import PrivateInterceptor
 from b3j0f.annotation.check import Target
 from b3j0f.utils.iterable import first
+from b3j0f.utils.version import range
 
 try:
     from inspect import getcallargs
@@ -364,14 +365,19 @@ def example_exc_handler(tries_remaining, exception, delay):
 class Retries(PrivateInterceptor):
     """Function decorator implementing retrying logic.
 
+    condition: retry condition, among execution success or failure or both.
     delay: Sleep this many seconds * backoff * try number after failure
     backoff: Multiply delay by this factor after each failure
     exceptions: A tuple of exception classes; default (Exception,)
-    hook: A function with the signature myhook(tries_remaining, exception);
-    default None.
+    hook: A function with the signature myhook(data, condition, tries_remaining
+    , mydelay) where data is result function or raised Exception, condition is
+    ON_ERROR or ON_SUCCESS depending on error or success execution function,
+    tries_remaining is tries remaining, and finally, mydelay is waiting seconds
+    between calls; default None.
 
     The decorator will call the function up to max_tries times if it raises
-    an exception.
+    an exception or if it simply execute the function, depending on state
+    condition.
 
     By default it catches instances of the Exception class and subclasses.
     This will recover after all but the most fatal errors. You may specify a
@@ -385,18 +391,23 @@ class Retries(PrivateInterceptor):
     log the failure. Hook is not called after failure if no retries remain.
     """
 
-    MAX_TRIES = 'max_tries'
-    DELAY = 'delay'
-    BACKOFF = 'backoff'
-    EXCEPTIONS = 'exceptions'
-    HOOK = 'hook'
+    MAX_TRIES = 'max_tries'  #: max_tries attribute name.
+    DELAY = 'delay'  #: delay attribute name.
+    BACKOFF = 'backoff'  #: backoff attribute name.
+    EXCEPTIONS = 'exceptions'  #: exceptions attribute name.
+    HOOK = 'hook'  #: hook attribute name.
+    CONDITION = 'condition'  #: condition attribute name.
 
     DEFAULT_DELAY = 1
     DEFAULT_BACKOFF = 2
     DEFAULT_EXCEPTIONS = (Exception,)
 
+    ON_ERROR = 1  #: on error retries condition.
+    ON_SUCCESS = 2  #: on success retries condition.
+    ALL = ON_ERROR | ON_SUCCESS  #: all retries condition.
+
     __slots__ = (
-        MAX_TRIES, DELAY, BACKOFF, EXCEPTIONS, HOOK
+        MAX_TRIES, DELAY, BACKOFF, EXCEPTIONS, HOOK, CONDITION
     ) + PrivateInterceptor.__slots__
 
     def __init__(
@@ -406,6 +417,7 @@ class Retries(PrivateInterceptor):
             backoff=DEFAULT_BACKOFF,
             exceptions=DEFAULT_EXCEPTIONS,
             hook=None,
+            condition=ALL,
             *args, **kwargs
     ):
 
@@ -416,33 +428,62 @@ class Retries(PrivateInterceptor):
         self.backoff = backoff
         self.exceptions = exceptions
         self.hook = hook
+        self.condition = condition
 
     def _interception(self, joinpoint):
 
         result = None
 
         mydelay = self.delay
-        tries = list(range(self.max_tries))
-        tries.reverse()
 
-        for tries_remaining in tries:
+        for tries_remaining in range(self.max_tries - 1, -1, -1):
 
             try:
                 result = joinpoint.proceed()
 
             except self.exceptions as ex:
 
-                if tries_remaining > 0:
+                mydelay = self._checkretry(
+                    mydelay=mydelay, condition=Retries.ON_ERROR, data=ex,
+                    tries_remaining=tries_remaining
+                )
 
-                    if self.hook is not None:
-                        self.hook(tries_remaining, ex, mydelay)
-
-                    sleep(mydelay)
-                    mydelay = mydelay * self.backoff
-
-                else:
-                    raise
             else:
-                break
+
+                mydelay = self._checkretry(
+                    mydelay=mydelay, condition=Retries.ON_SUCCESS, data=result,
+                    tries_remaining=tries_remaining
+                )
+
+                if mydelay is None:
+                    break  # stop execution if mydelay is None
+
+        return result
+
+    def _checkretry(self, mydelay, condition, tries_remaining, data):
+        """Check if input parameters allow to retries function execution.
+
+        :param float mydelay: waiting delay between two execution.
+        :param int condition: condition to check with this condition.
+        :param int tries_remaining: tries remaining.
+        :param data: data to hook.
+        """
+
+        result = mydelay
+
+        if self.condition & condition and tries_remaining > 0:
+
+            # hook data with tries_remaining and mydelay
+            if self.hook is not None:
+                self.hook(data, condition, tries_remaining, mydelay)
+            # wait mydelay seconds
+            sleep(mydelay)
+            result *= self.backoff  # increment mydelay with this backoff
+
+        elif condition is Retries.ON_ERROR:
+            raise data  # raise data if no retries and on_error
+
+        else:  # else Nonify mydelay to prevent callee function to stop
+            result = None
 
         return result

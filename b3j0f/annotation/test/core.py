@@ -32,6 +32,7 @@ from time import sleep
 from inspect import getmembers
 
 from b3j0f.utils.ut import UTCase
+from b3j0f.utils.version import range
 from b3j0f.annotation.core import (
     Annotation, StopPropagation, RoutineAnnotation
 )

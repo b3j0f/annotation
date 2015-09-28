@@ -28,6 +28,7 @@
 from unittest import main
 
 from b3j0f.utils.ut import UTCase
+from b3j0f.utils.version import range
 from b3j0f.annotation.core import Annotation
 from b3j0f.annotation.check import (
     Condition, MaxCount, Target, AnnotationChecker
