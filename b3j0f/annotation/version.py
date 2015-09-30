@@ -3,7 +3,7 @@
 # --------------------------------------------------------------------
 # The MIT License (MIT)
 #
-# Copyright (c) 2015 Jonathan Labéjof <jonathan.labejof@gmail.com>
+# Copyright (c) 2014 Jonathan Labéjof <jonathan.labejof@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -24,31 +24,13 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-"""Annotation package."""
+__all__ = ['__version__']
 
-__all__ = [
-    '__version__',  # version
-    'Annotation',
-    'Synchronized', 'SynchronizedClass',
-    'Asynchronous', 'TimeOut', 'Wait', 'Observable',
-    'Types', 'types', 'Curried', 'curried', 'Retries',
-    'Condition', 'MaxCount', 'Target',
-    'Interceptor',
-    'PrivateInterceptor', 'CallInterceptor', 'PrivateCallInterceptor',
-    'Transform', 'Mixin', 'Deprecated', 'Singleton', 'MethodMixin'
-]
+# Store the version here so:
+# 1) we don't load dependencies by storing it in __init__.py
+# 2) we can import it in setup.py for the same reason
+# 3) we can import it into the utils module
+# thanks to https://github.com/pycontribs/jira/blob/master/jira/version.py
 
-from .version import __version__
-
-from .core import Annotation
-from .async import (
-    Synchronized, SynchronizedClass, Asynchronous, TimeOut, Wait, Observable
-)
-from .call import Types, types, Curried, curried, Retries
-from .check import Condition, MaxCount, Target
-from .interception import (
-    Interceptor, PrivateInterceptor, CallInterceptor, PrivateCallInterceptor
-)
-from .oop import (
-    Transform, Mixin, Deprecated, Singleton, MethodMixin
-)
+#: project version
+__version__ = '0.2.3'

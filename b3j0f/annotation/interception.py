@@ -24,10 +24,10 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-"""Definition of annotation dedicated to intercept annotated element calls.
-"""
+"""Definition of annotation dedicated to intercept annotated element calls."""
 
-from b3j0f.annotation.core import Annotation
+from .core import Annotation
+
 from b3j0f.aop import weave, unweave
 
 __all__ = [

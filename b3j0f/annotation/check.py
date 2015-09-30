@@ -24,13 +24,11 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-"""Interceptors dedicated to decorate decorations.
-"""
+"""Interceptors dedicated to decorate decorations."""
 
-from b3j0f.annotation.core import Annotation
-from b3j0f.annotation.interception import (
-    PrivateInterceptor, PrivateCallInterceptor
-)
+from .core import Annotation
+from .interception import PrivateInterceptor, PrivateCallInterceptor
+
 from b3j0f.utils.iterable import ensureiterable
 
 from types import FunctionType

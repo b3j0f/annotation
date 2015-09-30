@@ -28,10 +28,9 @@
 from unittest import main
 
 from b3j0f.utils.ut import UTCase
-from b3j0f.annotation.core import Annotation
-from b3j0f.annotation.oop import (
-    Transform, Mixin, MethodMixin, Deprecated, Singleton
-)
+
+from ..core import Annotation
+from ..oop import Transform, Mixin, MethodMixin, Deprecated, Singleton
 
 
 class TransformTest(UTCase):

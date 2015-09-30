@@ -27,8 +27,9 @@
 """Annotations dedicated to object oriented programming."""
 
 from b3j0f.utils.version import PY2
-from b3j0f.annotation.core import Annotation
-from b3j0f.annotation.interception import PrivateInterceptor
+
+from .core import Annotation
+from .interception import PrivateInterceptor
 
 from types import MethodType
 

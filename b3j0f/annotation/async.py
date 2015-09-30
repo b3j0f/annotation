@@ -42,9 +42,9 @@ except ImportError:
 
 from signal import signal, SIGALRM, alarm
 
-from b3j0f.annotation.core import Annotation
-from b3j0f.annotation.interception import PrivateInterceptor
-from b3j0f.annotation.oop import Mixin
+from .core import Annotation
+from .interception import PrivateInterceptor
+from .oop import Mixin
 
 __all__ = [
     'Synchronized', 'SynchronizedClass',

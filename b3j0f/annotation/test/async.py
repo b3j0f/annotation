@@ -28,7 +28,8 @@
 from unittest import main
 
 from b3j0f.utils.ut import UTCase
-from b3j0f.annotation.async import Synchronized, Asynchronous, TimeOut, Wait
+
+from ..async import Synchronized, Asynchronous, TimeOut, Wait
 
 
 class ThreadingTests(UTCase):

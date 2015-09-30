@@ -28,8 +28,9 @@
 from unittest import main
 
 from b3j0f.utils.ut import UTCase
-from b3j0f.annotation.interception import Interceptor
-from b3j0f.annotation.call import Types, types, Curried, curried, Retries
+
+from ..interception import Interceptor
+from ..call import Types, Curried, Retries
 
 
 class CallTests(UTCase):

@@ -25,18 +25,13 @@
 # --------------------------------------------------------------------
 
 """
-Decorators dedicated to class or functions calls.
-"""
+Decorators dedicated to class or functions calls."""
 
-from b3j0f.annotation.interception import PrivateInterceptor
-from b3j0f.annotation.check import Target
+from .interception import PrivateInterceptor
+from .check import Target
+
 from b3j0f.utils.iterable import first
-from b3j0f.utils.version import range
-
-try:
-    from inspect import getcallargs
-except ImportError:
-    from b3j0f.utils.version import getcallargs
+from b3j0f.utils.version import range, getcallargs
 
 from sys import stderr
 
