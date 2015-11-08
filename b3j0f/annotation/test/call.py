@@ -35,9 +35,6 @@ from ..call import Types, Curried, Retries
 
 class CallTests(UTCase):
 
-    def setUp(self):
-        pass
-
     def _assertCall(self, f, *args, **kwargs):
 
         self.assertRaises(Exception, f, *args, **kwargs)

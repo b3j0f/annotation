@@ -32,39 +32,33 @@ from time import sleep
 from inspect import getmembers
 
 from b3j0f.utils.ut import UTCase
-from b3j0f.utils.version import range
+
+from builtins import range
 
 from ..core import Annotation, StopPropagation, RoutineAnnotation
 
 
 class TestAnnotation(Annotation):
-    """Annotation for inheritance tests
-    """
-
-    pass
+    """Annotation for inheritance tests."""
 
 
 class AnnotationTest(UTCase):
-    """UT class which creates an annotation and delete it at the end
-    """
+    """UT class which creates an annotation and delete it at the end."""
 
     def setUp(self):
-        """Create a new annotation
-        """
+        """Create a new annotation."""
 
         self.annotation = Annotation()
 
     def tearDown(self):
-        """Delete self.annotation
-        """
+        """Delete self.annotation."""
 
         self.annotation.__del__()
         del self.annotation
 
 
 class MemoryTest(AnnotationTest):
-    """Test InMemory Annotations.
-    """
+    """Test InMemory Annotations."""
 
     def setUp(self):
 
@@ -140,12 +134,10 @@ class MemoryTest(AnnotationTest):
 
 
 class DeleteTest(AnnotationTest):
-    """Test annotation deletion
-    """
+    """Test annotation deletion."""
 
     def test_one_annotation(self):
-        """Test to delete one bound annotation
-        """
+        """Test to delete one bound annotation."""
 
         self.annotation(self)
 
@@ -160,8 +152,7 @@ class DeleteTest(AnnotationTest):
         self.assertFalse(annotations)
 
     def test_two_annotations(self):
-        """Test to delete one annotation bound twice on the same element
-        """
+        """Test to delete one annotation bound twice on the same element."""
 
         self.annotation(self)
         self.annotation(self)
@@ -177,8 +168,7 @@ class DeleteTest(AnnotationTest):
         self.assertFalse(annotations)
 
     def test_two_annotations_wit_two_objects(self):
-        """Test to delete one annotations bound to two elements
-        """
+        """Test to delete one annotations bound to two elements."""
 
         self.annotation(self)
         self.annotation(DeleteTest)
@@ -203,8 +193,7 @@ class DeleteTest(AnnotationTest):
 
 
 class RemoveTest(AnnotationTest):
-    """Test remove class method.
-    """
+    """Test remove class method."""
 
     def setUp(self):
 
@@ -221,8 +210,7 @@ class RemoveTest(AnnotationTest):
         del self.test_annotation
 
     def test(self):
-        """Test simple remove
-        """
+        """Test simple remove."""
 
         Annotation.remove(self)
 
@@ -248,8 +236,7 @@ class RemoveTest(AnnotationTest):
 
 
 class OnBindTargetTest(AnnotationTest):
-    """Test on_bind_target handler
-    """
+    """Test on_bind_target handler."""
 
     def setUp(self):
 
@@ -284,8 +271,7 @@ class OnBindTargetTest(AnnotationTest):
 
 
 class TargetsTest(AnnotationTest):
-    """Test targets attribute
-    """
+    """Test targets attribute."""
 
     def test_none(self):
 
@@ -314,8 +300,7 @@ class TargetsTest(AnnotationTest):
 
 
 class TTLTest(AnnotationTest):
-    """Test ttl.
-    """
+    """Test ttl."""
 
     def setUp(self):
 
@@ -324,8 +309,7 @@ class TTLTest(AnnotationTest):
         self.ttl = 0.1
 
     def test_def(self):
-        """Test ttl at definition
-        """
+        """Test ttl at definition."""
 
         self.annotation = Annotation(ttl=self.ttl)
         self.annotation(self)
@@ -341,8 +325,7 @@ class TTLTest(AnnotationTest):
         self.assertFalse(annotations)
 
     def test_run(self):
-        """Test to set ttl at runtime
-        """
+        """Test to set ttl at runtime."""
 
         self.annotation(self)
 
@@ -359,8 +342,7 @@ class TTLTest(AnnotationTest):
         self.assertFalse(annotations)
 
     def test_run_run(self):
-        """Test to change ttl after changing it a first time
-        """
+        """Test to change ttl after changing it a first time."""
 
         self.annotation(self)
 
@@ -382,12 +364,10 @@ class TTLTest(AnnotationTest):
 
 
 class GetAnnotationsTest(AnnotationTest):
-    """Test to annotate elements.
-    """
+    """Test to annotate elements."""
 
     def test_None(self):
-        """Test to annotate None.
-        """
+        """Test to annotate None."""
 
         self.annotation(None)
 
@@ -396,8 +376,7 @@ class GetAnnotationsTest(AnnotationTest):
         self.assertTrue(annotations)
 
     def test_number(self):
-        """Test to annotate a number.
-        """
+        """Test to annotate a number."""
 
         self.annotation(1)
 
@@ -406,11 +385,10 @@ class GetAnnotationsTest(AnnotationTest):
         self.assertTrue(annotations)
 
     def test_function(self):
-        """Test to annotate a function.
-        """
+        """Test to annotate a function."""
 
         def test():
-            pass
+            """test function."""
 
         self.annotation(test)
 
@@ -419,8 +397,7 @@ class GetAnnotationsTest(AnnotationTest):
         self.assertTrue(annotations)
 
     def test_builtin(self):
-        """Test to annotate a builtin element.
-        """
+        """Test to annotate a builtin element."""
 
         self.annotation(range)
 
@@ -429,11 +406,10 @@ class GetAnnotationsTest(AnnotationTest):
         self.assertTrue(annotations)
 
     def test_class(self):
-        """Test to annotate a class.
-        """
+        """Test to annotate a class."""
 
         class Test(object):
-            pass
+            """Test class."""
 
         self.annotation(Test)
 
@@ -442,23 +418,21 @@ class GetAnnotationsTest(AnnotationTest):
         self.assertTrue(annotations)
 
     def test_dclass(self):
-        """Test to annotate directly a class.
-        """
+        """Test to annotate directly a class."""
 
         @Annotation()
         class Test(object):
-            pass
+            """Test class."""
 
         annotations = Annotation.get_annotations(Test)
 
         self.assertTrue(annotations)
 
     def test_namespace(self):
-        """Test to annotate a namespace.
-        """
+        """Test to annotate a namespace."""
 
         class Test:
-            pass
+            """Test namespace."""
 
         self.annotation(Test)
 
@@ -467,12 +441,12 @@ class GetAnnotationsTest(AnnotationTest):
         self.assertTrue(annotations)
 
     def test_method(self):
-        """Test to annotate a method.
-        """
+        """Test to annotate a method."""
 
         class Test:
+            """Test class."""
             def test(self):
-                pass
+                """Test method."""
 
         self.annotation(Test.test, ctx=Test)
 
@@ -481,25 +455,25 @@ class GetAnnotationsTest(AnnotationTest):
         self.assertTrue(annotations)
 
     def test_dmethod(self):
-        """Test to annotate directly a method.
-        """
+        """Test to annotate directly a method."""
 
         class Test:
+            """Test class."""
             @Annotation()
             def test(self):
-                pass
+                """Test method."""
 
         annotations = Annotation.get_annotations(Test.test, ctx=Test)
 
         self.assertTrue(annotations)
 
     def test_boundmethod(self):
-        """Test to annotate a bound method.
-        """
+        """Test to annotate a bound method."""
 
         class Test:
+            """Test class."""
             def test(self):
-                pass
+                """Test method."""
 
         test = Test()
 
@@ -510,11 +484,10 @@ class GetAnnotationsTest(AnnotationTest):
         self.assertTrue(annotations)
 
     def test_instance(self):
-        """Test to annotate an instance.
-        """
+        """Test to annotate an instance."""
 
         class Test:
-                pass
+            """Test class."""
 
         test = Test()
 
@@ -525,8 +498,7 @@ class GetAnnotationsTest(AnnotationTest):
         self.assertTrue(annotations)
 
     def test_module(self):
-        """Test to annotate a module.
-        """
+        """Test to annotate a module."""
 
         import sys
 
@@ -537,8 +509,7 @@ class GetAnnotationsTest(AnnotationTest):
         self.assertTrue(annotations)
 
     def test_dconstructor(self):
-        """Test to annotate directly a constructor.
-        """
+        """Test to annotate directly a constructor."""
 
         class Test(object):
 
@@ -553,8 +524,7 @@ class GetAnnotationsTest(AnnotationTest):
         self.assertTrue(annotations)
 
     def test_constructor(self):
-        """Test to annotate a constructor.
-        """
+        """Test to annotate a constructor."""
 
         class Test(object):
 
@@ -568,8 +538,7 @@ class GetAnnotationsTest(AnnotationTest):
         self.assertTrue(annotations)
 
     def test_boundconstructor(self):
-        """Test to annotate a bound constructor.
-        """
+        """Test to annotate a bound constructor."""
 
         class Test(object):
 
@@ -585,8 +554,7 @@ class GetAnnotationsTest(AnnotationTest):
         self.assertTrue(annotations)
 
     def test_dboundconstructor(self):
-        """Test to annotate directly a bound constructor.
-        """
+        """Test to annotate directly a bound constructor."""
 
         class Test(object):
             @Annotation()
@@ -601,8 +569,7 @@ class GetAnnotationsTest(AnnotationTest):
 
 
 class GetLocalAnnotationsTest(AnnotationTest):
-    """Test get local annotatations.
-    """
+    """Test get local annotatations."""
 
     def test_None(self):
         """Test to annotate None.
@@ -995,11 +962,11 @@ class GetAnnotatedFields(AnnotationTest):
 
         members = set()
 
-        for name, member in getmembers(cls):
+        for _, member in getmembers(cls):
 
             try:
                 self.annotation(member, ctx=cls)
-            except Exception:
+            except:
                 pass
             else:
                 members.add(member)
@@ -1024,7 +991,8 @@ class RoutineAnnotationTest(AnnotationTest):
         self.result = 'result'
 
         self.annotation = RoutineAnnotation(
-            routine=self.routine, params=self.params, result=self.result)
+            routine=self.routine, params=self.params, result=self.result
+        )
 
         self.assertEqual(self.annotation.routine, self.routine)
         self.assertEqual(self.annotation.params, self.params)

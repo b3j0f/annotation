@@ -1,47 +1,52 @@
 Changelog
 =========
 
-0.2.3 (22/09/2015)
+0.3.0 (2015/11/09)
+------------------
+
+- add dependency to six and future.
+
+0.2.3 (2015/09/22)
 ------------------
 
 - add reference to module members in the main package.
 
-0.2.2 (14/06/2015)
+0.2.2 (2015/06/14)
 ------------------
 
 - add the folder docs in order to be hosted by readthedocs.
 
-0.2.1 (02/06/2015)
+0.2.1 (2015/06/02)
 ------------------
 
 - use shields.io badges in the README.
 
-0.2.0 (02/06/2015)
+0.2.0 (2015/06/02)
 ------------------
 
 - fix errors in wheel packaging distribution.
 
-0.1.6 (20/05/2015)
+0.1.6 (2015/05/20)
 ------------------
 
 - add wheel package.
 
-0.1.5 (27/02/2015)
+0.1.5 (2015/02/27)
 ------------------
 
 - Fix bug when trying to annotate a class constructor in python3+.
 
-0.1.4 (27/02/2015)
+0.1.4 (2015/02/27)
 ------------------
 
 - Fix bug when trying to annotate a class constructor.
 
-0.1.3 (14/02/2015)
+0.1.3 (2015/02/14)
 ------------------
 
 - Add selection function in Annotation selection functions.
 
-0.1.2 (02/12/2015)
+0.1.2 (2015/12/02)
 ------------------
 
 - Move code from the package annotation to the module core.

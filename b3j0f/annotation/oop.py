@@ -26,7 +26,7 @@
 
 """Annotations dedicated to object oriented programming."""
 
-from b3j0f.utils.version import PY2
+from six import PY2, get_method_function, get_function_code
 
 from .core import Annotation
 from .interception import PrivateInterceptor
@@ -163,7 +163,7 @@ class Mixin(Annotation):
             function = routine
 
         elif ismethod(routine):
-            function = routine.__func__
+            function = get_method_function(routine)
 
         else:
             raise Mixin.MixInError(
@@ -415,11 +415,12 @@ class Deprecated(PrivateInterceptor):
     def _interception(self, joinpoint):
 
         target = joinpoint.target
+        target_code = get_function_code(target)
         warn_explicit(
             "Call to deprecated function {0}.".format(target.__name__),
             category=DeprecationWarning,
-            filename=target.__code__.co_filename,
-            lineno=target.__code__.co_firstlineno + 1
+            filename=target_code.co_filename,
+            lineno=target_code.co_firstlineno + 1
         )
         result = joinpoint.proceed()
         return result

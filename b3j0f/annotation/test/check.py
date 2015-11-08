@@ -25,10 +25,13 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
+from __future__ import absolute_import
+
 from unittest import main
 
 from b3j0f.utils.ut import UTCase
-from b3j0f.utils.version import range
+
+from builtins import range
 
 from ..core import Annotation
 from ..check import Condition, MaxCount, Target, AnnotationChecker

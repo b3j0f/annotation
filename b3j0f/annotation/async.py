@@ -24,9 +24,9 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-"""
-Decorators dedicated to asynchronous programming.
-"""
+"""Decorators dedicated to asynchronous programming."""
+
+from __future__ import absolute_import
 
 try:
     from threading import Thread, RLock
@@ -35,12 +35,11 @@ except ImportError:
 
 from time import sleep
 
-try:
-    from Queue import Queue
-except ImportError:
-    from queue import Queue
+from queue import Queue
 
 from signal import signal, SIGALRM, alarm
+
+from six import callable
 
 from .core import Annotation
 from .interception import PrivateInterceptor
@@ -166,8 +165,7 @@ class Asynchronous(Annotation):
 
 
 class TimeOut(PrivateInterceptor):
-    """Raise an Exception if the target call has not finished in time.
-    """
+    """Raise an Exception if the target call has not finished in time."""
 
     class TimeOutError(Exception):
         """Exception thrown if time elapsed before the end of the target call.

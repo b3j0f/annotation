@@ -47,6 +47,8 @@ from b3j0f.utils.property import (
     put_properties, del_properties, get_local_property, get_property
 )
 
+from six import get_method_function
+
 from time import time
 
 try:
@@ -442,13 +444,14 @@ class Annotation(object):
             )
             if not local_annotations:
                 if ismethod(target):
+                    func = get_method_function(target)
                     local_annotations = get_local_property(
-                        target.__func__, Annotation.__ANNOTATIONS_KEY__,
+                        func, Annotation.__ANNOTATIONS_KEY__,
                         result, ctx=ctx
                     )
                     if not local_annotations:
                         local_annotations = get_local_property(
-                            target.__func__, Annotation.__ANNOTATIONS_KEY__,
+                            func, Annotation.__ANNOTATIONS_KEY__,
                             result
                         )
                 elif isfunction(target):
@@ -539,14 +542,15 @@ class Annotation(object):
 
         if not annotations_by_ctx:
             if ismethod(target):
+                func = get_method_function(target)
                 annotations_by_ctx = get_property(
-                    elt=target.__func__,
+                    elt=func,
                     key=Annotation.__ANNOTATIONS_KEY__,
                     ctx=ctx
                 )
                 if not annotations_by_ctx:
                     annotations_by_ctx = get_property(
-                        elt=target.__func__, key=Annotation.__ANNOTATIONS_KEY__
+                        elt=func, key=Annotation.__ANNOTATIONS_KEY__
                     )
             elif isfunction(target):
                 annotations_by_ctx = get_property(
@@ -602,7 +606,6 @@ class Annotation(object):
                 pass
 
             else:
-
                 try:
                     if annotations:
                         result[member] = annotations

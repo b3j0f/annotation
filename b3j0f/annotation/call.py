@@ -24,14 +24,19 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-"""
-Decorators dedicated to class or functions calls."""
+"""Decorators dedicated to class or functions calls."""
+
+from __future__ import absolute_import
 
 from .interception import PrivateInterceptor
 from .check import Target
 
 from b3j0f.utils.iterable import first
-from b3j0f.utils.version import range, getcallargs
+from b3j0f.utils.version import getcallargs
+
+from builtins import range
+
+from six import get_function_code
 
 from sys import stderr
 
@@ -90,16 +95,17 @@ class Types(PrivateInterceptor):
 
             self._named_parameter_types = []
 
-            for index in range(target.__code__.co_argcount):
-                target_parameter_name = target.__code__.co_varnames[index]
+            target_code = get_function_code(target)
 
-                if target_parameter_name in named_parameter_types:
-                    parameter_type = \
-                        named_parameter_types[target_parameter_name]
-                    named_parameter_type = \
-                        Types.NamedParameterType(
-                            target_parameter_name,
-                            parameter_type)
+            for index in range(target_code.co_argcount):
+                targetparamname = target_code.co_varnames[index]
+
+                if targetparamname in named_parameter_types:
+                    parameter_type = named_parameter_types[targetparamname]
+                    named_parameter_type = Types.NamedParameterType(
+                        targetparamname,
+                        parameter_type
+                    )
                     self._named_parameter_types.append(named_parameter_type)
 
                 else:
@@ -135,7 +141,8 @@ class Types(PrivateInterceptor):
         if isinstance(expected_type, Types.NotNone):
             result = value is not None and Types.check_value(
                 value,
-                expected_type.get_type())
+                expected_type.get_type()
+            )
 
         else:
             result = value is None
@@ -165,7 +172,8 @@ class Types(PrivateInterceptor):
                             for item in value:
                                 result = Types.check_value(
                                     item,
-                                    _expected_type)
+                                    _expected_type
+                                )
 
                                 if not result:
                                     break

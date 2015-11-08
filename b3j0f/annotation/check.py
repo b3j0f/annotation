@@ -35,6 +35,8 @@ from types import FunctionType
 
 from inspect import isclass, isroutine
 
+from six import callable
+
 __all__ = ['Condition', 'MaxCount', 'Target']
 
 
@@ -203,17 +205,23 @@ class Target(AnnotationChecker):
         annotation = joinpoint.kwargs['self']
 
         for _type in self.types:
-            if ((_type == Target.ROUTINE and isroutine(target))
-                or
-                (_type == Target.FUNC and isinstance(target, Target.FUNC))
-                or
-                (_type == type and isclass(target))
-                or
-                (_type is callable and callable(target))
-                or
-                (_type is not callable
-                    and ((isclass(target) and issubclass(target, _type))
-                    or (self.instances and isinstance(target, _type))))):
+            if (
+                    (_type == Target.ROUTINE and isroutine(target))
+                    or
+                    (_type == Target.FUNC and isinstance(target, Target.FUNC))
+                    or
+                    (_type == type and isclass(target))
+                    or
+                    (_type is callable and callable(target))
+                    or
+                    (
+                        _type is not callable
+                        and (
+                            (isclass(target) and issubclass(target, _type))
+                            or (self.instances and isinstance(target, _type))
+                        )
+                    )
+            ):
                 if self.rule == Target.OR:
                     raiseexception = False
                     break
@@ -223,12 +231,12 @@ class Target(AnnotationChecker):
                 break
 
         if raiseexception:
-            Interceptor_type = type(annotation)
+            interceptor_type = annotation.__class__
 
             raise Target.Error(
                 "{0} is not allowed by {1}. Must be {2} {3}".format(
                     target,
-                    Interceptor_type,
+                    interceptor_type,
                     'among' if self.rule == Target.OR else 'all',
                     self.types)
             )
