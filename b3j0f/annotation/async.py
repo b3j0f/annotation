@@ -35,11 +35,10 @@ except ImportError:
 
 from time import sleep
 
-from queue import Queue
-
 from signal import signal, SIGALRM, alarm
 
 from six import callable
+from six.moves.queue import Queue
 
 from .core import Annotation
 from .interception import PrivateInterceptor

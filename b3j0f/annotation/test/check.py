@@ -31,7 +31,7 @@ from unittest import main
 
 from b3j0f.utils.ut import UTCase
 
-from builtins import range
+from six.moves import range
 
 from ..core import Annotation
 from ..check import Condition, MaxCount, Target, AnnotationChecker

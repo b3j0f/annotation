@@ -37,21 +37,23 @@ NAME = 'b3j0f.annotation'  # library name
 
 _namepath = NAME.replace('.', '/')
 
-_base_path = dirname(abspath(__file__))
+BASEPATH = dirname(abspath(__file__))
 
 # get long description from setup directory abspath
-with open(join(_base_path, 'README.rst')) as f:
+with open(join(BASEPATH, 'README.rst')) as f:
     DESC = f.read()
 
 # Get the version - do not use normal import because it does break coverage
 # thanks to the python jira project
 # (https://github.com/pycontribs/jira/blob/master/setup.py)
-with open(join(_base_path, _namepath, 'version.py')) as f:
+with open(join(BASEPATH, _namepath, 'version.py')) as f:
     stream = f.read()
     regex = r'.*__version__ = \'(.*?)\''
     VERSION = re_compile(regex, re_S).match(stream).group(1)
 
-DEPENDENCIES = ['b3j0f.aop', 'b3j0f.utils', 'future', 'six']
+DEPENDENCIES = []
+with open(join(BASEPATH, 'requirements.txt')) as f:
+    DEPENDENCIES = list(line for line in f.readlines())
 
 KEYWORDS = [
     'annotation', 'decorator', 'type', 'check', 'async', 'interceptor', 'oop',
@@ -92,7 +94,8 @@ setup(
         'Programming Language :: Python :: 3.2',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5'
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: Implementation :: CPython'
     ],
     test_suite='b3j0f',
     keywords=KEYWORDS

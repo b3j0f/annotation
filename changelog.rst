@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.3.2 (2016/02/22)
+------------------
+
+- remove dependency to future.
+- add support of cpython.
+
 0.3.1 (2015/11/09)
 ------------------
 

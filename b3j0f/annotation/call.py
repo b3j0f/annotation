@@ -34,9 +34,8 @@ from .check import Target
 from b3j0f.utils.iterable import first
 from b3j0f.utils.version import getcallargs
 
-from builtins import range
-
 from six import get_function_code
+from six.moves import range
 
 from sys import stderr
 

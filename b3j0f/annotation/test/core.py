@@ -33,7 +33,7 @@ from inspect import getmembers
 
 from b3j0f.utils.ut import UTCase
 
-from builtins import range
+from six.moves import range
 
 from ..core import Annotation, StopPropagation, RoutineAnnotation
 
