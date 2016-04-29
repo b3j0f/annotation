@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.3.3 (2016/03/12)
+------------------
+
+- fix a bug in adding the parameter ``ctx`` in the call to the super method _bind_target of the Interceptor.
+- add the b3j0f.annotation.call.Memoize annontation which is given in order to save function result related to parameters.
+
 0.3.2 (2016/02/22)
 ------------------
 

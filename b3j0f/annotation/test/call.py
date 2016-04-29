@@ -30,7 +30,7 @@ from unittest import main
 from b3j0f.utils.ut import UTCase
 
 from ..interception import Interceptor
-from ..call import Types, Curried, Retries
+from ..call import Types, Curried, Retries, Memoize
 
 
 class CallTests(UTCase):
@@ -228,6 +228,62 @@ class CallTests(UTCase):
 
         self.assertTrue(count == 0)
         self.assertTrue(result == "")
+
+
+class MemoizeTest(UTCase):
+    """Test the memoize annotation."""
+
+    def setUp(self):
+
+        self.memoize = Memoize()
+
+        self.n = 0
+
+        def func(*args, **kwargs):
+
+            self.n += 1
+
+            return self.n
+
+        self.func = self.memoize(func)
+
+    def test_empty(self):
+
+        result = self.func()
+        self.assertEqual(result, 1)
+
+        params = self.memoize.getparams(1)
+        self.assertEqual(params, ((), {}))
+
+        result = self.func()
+        self.assertEqual(result, 1)
+
+    def test_maxsize(self):
+
+        self.memoize.max_size = 2
+
+        result = self.func()
+        self.assertEqual(result, 1)
+
+        params = self.memoize.getparams(1)
+        self.assertEqual(params, ((), {}))
+
+        result = self.func()
+        self.assertEqual(result, 1)
+
+        params = self.memoize.getparams(1)
+        self.assertEqual(params, ((), {}))
+
+        result = self.func(1, 2, a=3)
+        self.assertEqual(result, 2)
+
+        params = self.memoize.getparams(2)
+        self.assertEqual(params, ((1, 2), {'a': 3}))
+
+        result = self.func(3, 4, b=5)
+        self.assertEqual(result, 3)
+
+        self.assertRaises(ValueError, self.memoize.getparams, 3)
 
 
 if __name__ == '__main__':

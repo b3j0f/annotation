@@ -165,8 +165,7 @@ class Annotation(object):
         return result
 
     def __del__(self):
-        """Remove self to self.target annotations.
-        """
+        """Remove self to self.target annotations."""
 
         try:
             # nonify self ttl
@@ -369,8 +368,7 @@ class Annotation(object):
 
     @classmethod
     def free_memory(cls, exclude=None):
-        """Free global annotation memory.
-        """
+        """Free global annotation memory."""
 
         annotations_in_memory = Annotation.__ANNOTATIONS_IN_MEMORY__
 
@@ -617,8 +615,7 @@ class Annotation(object):
 
 
 class StopPropagation(Annotation):
-    """Stop propagation for annotation types.
-    """
+    """Stop propagation for annotation types."""
 
     ANNOTATION_TYPES = 'annotation_types'
 
@@ -635,8 +632,7 @@ class StopPropagation(Annotation):
 
 class RoutineAnnotation(Annotation):
     """Dedicated to add information on any routine, routine parameters or
-    routine result.
-    """
+    routine result."""
 
     #: routine attribute name
     ROUTINE = 'routine'

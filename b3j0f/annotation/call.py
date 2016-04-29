@@ -37,13 +37,13 @@ from b3j0f.utils.version import getcallargs
 from six import get_function_code
 from six.moves import range
 
-from sys import stderr
+from sys import stderr, maxsize
 
 from time import sleep
 
 from functools import wraps
 
-__all__ = ['Types', 'types', 'Curried', 'curried', 'Retries']
+__all__ = ['Types', 'types', 'Curried', 'curried', 'Retries', 'Memoize']
 
 
 @Target(callable)
@@ -489,3 +489,87 @@ class Retries(PrivateInterceptor):
             result = None
 
         return result
+
+
+class Memoize(PrivateInterceptor):
+    """Save funtion results related to called parameters.
+
+    Parameters must be hashable."""
+
+    MAX_SIZE = 'max_size'  #: max size result.
+    _CACHE = '_cache'  #: cache object which stores results and params.
+
+    DEFAULT_MAX_SIZE = maxsize  #: default max size value.
+
+    __slots__ = (MAX_SIZE, _CACHE) + PrivateInterceptor.__slots__
+
+    def __init__(self, max_size=DEFAULT_MAX_SIZE, *args, **kwargs):
+
+        super(Memoize, self).__init__(*args, **kwargs)
+
+        self.max_size = max_size
+        self._cache = {}
+
+    def _getkey(self, args, kwargs):
+        """Get hash key from args and kwargs.
+
+        args and kwargs must be hashable.
+
+        :param tuple args: called vargs.
+        :param dict kwargs: called keywords.
+        :return: hash(tuple(args) + tuple((key, val) for key in sorted(kwargs)).
+        :rtype: int."""
+
+        values = list(args)
+
+        keys = sorted(list(kwargs))
+
+        for key in keys:
+            values.append((key, kwargs[key]))
+
+        result = hash(tuple(values))
+
+        return result
+
+    def _interception(self, joinpoint):
+
+        result = None
+
+        args = joinpoint.args
+        kwargs = joinpoint.kwargs
+        key = self._getkey(args, kwargs)
+
+        _cache = self._cache
+
+        if key in _cache:
+            _, _, result = _cache[key]
+
+        else:
+            result = joinpoint.proceed()
+
+            if len(self._cache) < self.max_size:
+                _cache[key] = (args, kwargs, result)
+
+        return result
+
+    def getparams(self, result):
+        """Get result parameters.
+
+        :param result: cached result.
+        :raises: ValueError if result is not cached.
+        :return: args and kwargs registered with input result.
+        :rtype: tuple"""
+
+        for key in self._cache:
+            if self._cache[key][2] == result:
+                args, kwargs, _ = self._cache[key]
+                return args, kwargs
+                break
+
+        else:
+            raise ValueError('Result is not cached')
+
+    def clearcache(self):
+        """Clear cache."""
+
+        self._cache.clear()

@@ -112,7 +112,7 @@ class Interceptor(Annotation):
         """Weave self.intercepts among target advices with pointcut."""
 
         result = super(Interceptor, self)._bind_target(
-            target=target, *args, **kwargs
+            target=target, ctx=ctx, *args, **kwargs
         )
 
         pointcut = getattr(self, Interceptor.POINTCUT)
