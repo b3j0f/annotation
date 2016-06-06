@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.3.4 (2016/06/06)
+------------------
+
+- change type of Annotation.targets from set to list.
+
 0.3.3 (2016/03/12)
 ------------------
 

@@ -564,7 +564,6 @@ class Memoize(PrivateInterceptor):
             if self._cache[key][2] == result:
                 args, kwargs, _ = self._cache[key]
                 return args, kwargs
-                break
 
         else:
             raise ValueError('Result is not cached')

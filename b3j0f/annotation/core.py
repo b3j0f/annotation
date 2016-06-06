@@ -149,7 +149,7 @@ class Annotation(object):
         self.ttl = ttl
         self.in_memory = in_memory
 
-        self.targets = set()
+        self.targets = list()
 
     def __call__(self, target, ctx=None):
         """Shouldn't be overriden by sub classes.
@@ -320,7 +320,8 @@ class Annotation(object):
         local_annotations.insert(0, self)
 
         # add target to self targets
-        self.targets.add(target)
+        if target not in self.targets:
+            self.targets.append(target)
 
         return result
 
