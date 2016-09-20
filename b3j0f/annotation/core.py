@@ -519,7 +519,9 @@ class Annotation(object):
 
     @classmethod
     def get_annotations(
-            cls, target, exclude=None, ctx=None, select=lambda *p: True
+            cls, target,
+            exclude=None, ctx=None, select=lambda *p: True,
+            depth=1, followannotated=True, public=True, _history=None
     ):
         """Returns all input target annotations of cls type sorted
         by definition order.
@@ -531,13 +533,23 @@ class Annotation(object):
         :param select: bool function which select annotations after applying
             previous type filters. Takes a target, a ctx and an annotation in
             parameters. True by default.
+        :param int depth: depth for searching annotations.
+        :param bool followannotated: if True (default) follow deeply only
+            annotated members.
+        :param bool public: if True (default) follow public members.
+        :param list _history: private parameter which save parsed elements.
+        :rtype: Annotation
         """
 
         result = []
 
-        annotations_by_ctx = get_property(
-            elt=target, key=Annotation.__ANNOTATIONS_KEY__, ctx=ctx
-        )
+        try:
+            annotations_by_ctx = get_property(
+                elt=target, key=Annotation.__ANNOTATIONS_KEY__, ctx=ctx
+            )
+
+        except TypeError:
+            annotations_by_ctx = {}
 
         if not annotations_by_ctx:
             if ismethod(target):
@@ -581,6 +593,26 @@ class Annotation(object):
                         and select(target, ctx, annotation)):
 
                     result.append(annotation)
+
+        if depth > 1 and (result or not followannotated):
+
+            if _history is None:
+                _history = [target]
+
+            else:
+                _history.append(target)
+
+            for name, member in getmembers(target):
+                if (name[0] != '_' or not public) and member not in _history:
+
+                    if ismethod(target) and name.startswith('im_'):
+                        continue
+
+                    result += cls.get_annotations(
+                        target=member, exclude=exclude, ctx=ctx, select=select,
+                        depth=depth-1, followannotated=followannotated,
+                        _history=_history
+                    )
 
         return result
 

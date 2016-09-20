@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.3.5 (2016/09/20)
+------------------
+
+- add depth parameter in searching deeply annotations.
+
 0.3.4 (2016/06/06)
 ------------------
 

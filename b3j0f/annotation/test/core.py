@@ -567,6 +567,78 @@ class GetAnnotationsTest(AnnotationTest):
 
         self.assertTrue(annotations)
 
+    def test_depthsearch(self):
+
+        annotations = [Annotation() for _ in range(4)]
+        annotation0 = annotations[0]
+        annotation1 = annotations[1]
+        annotation2 = annotations[2]
+        annotation3 = annotations[3]
+
+        @annotation0
+        class Test0(object):
+
+            @annotation0
+            @annotation1
+            class Test1(object):
+
+                class Test(object):
+
+                    @annotation3
+                    def test(self):
+                        pass
+
+                @annotation2
+                class Test2(object):
+
+                    pass
+
+            @annotation1
+            def test1(self):
+                pass
+
+        _annotations = Annotation.get_annotations(Test0, depth=5)
+
+        self.assertEqual(len(_annotations), 5)
+        self.assertNotIn(annotation3, _annotations)
+
+    def test_depthsearchnotfollowannotated(self):
+
+        annotations = [Annotation() for _ in range(4)]
+        annotation0 = annotations[0]
+        annotation1 = annotations[1]
+        annotation2 = annotations[2]
+        annotation3 = annotations[3]
+
+        @annotation0
+        class Test0(object):
+
+            @annotation0
+            @annotation1
+            class Test1(object):
+
+                class Test(object):
+
+                    @annotation3
+                    def test(self):
+                        pass
+
+                @annotation2
+                class Test2(object):
+
+                    pass
+
+            @annotation1
+            def test1(self):
+                pass
+
+        _annotations = Annotation.get_annotations(
+            Test0, depth=5, followannotated=False
+        )
+
+        self.assertEqual(len(_annotations), 6)
+        self.assertIn(annotation3, _annotations)
+
 
 class GetLocalAnnotationsTest(AnnotationTest):
     """Test get local annotatations."""
