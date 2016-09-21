@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.3.6 (2016/09/21)
+------------------
+
+- change depth parameter to mindepth and maxdepth.
+
 0.3.5 (2016/09/20)
 ------------------
 

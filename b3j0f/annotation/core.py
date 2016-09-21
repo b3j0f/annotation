@@ -521,7 +521,8 @@ class Annotation(object):
     def get_annotations(
             cls, target,
             exclude=None, ctx=None, select=lambda *p: True,
-            depth=1, followannotated=True, public=True, _history=None
+            mindepth=0, maxdepth=0, followannotated=True, public=True,
+            _history=None
     ):
         """Returns all input target annotations of cls type sorted
         by definition order.
@@ -533,7 +534,8 @@ class Annotation(object):
         :param select: bool function which select annotations after applying
             previous type filters. Takes a target, a ctx and an annotation in
             parameters. True by default.
-        :param int depth: depth for searching annotations.
+        :param int mindepth: minimal depth for searching annotations (default 0)
+        :param int maxdepth: maximal depth for searching annotations (default 0)
         :param bool followannotated: if True (default) follow deeply only
             annotated members.
         :param bool public: if True (default) follow public members.
@@ -543,58 +545,60 @@ class Annotation(object):
 
         result = []
 
-        try:
-            annotations_by_ctx = get_property(
-                elt=target, key=Annotation.__ANNOTATIONS_KEY__, ctx=ctx
-            )
+        if mindepth <= 0:
 
-        except TypeError:
-            annotations_by_ctx = {}
-
-        if not annotations_by_ctx:
-            if ismethod(target):
-                func = get_method_function(target)
+            try:
                 annotations_by_ctx = get_property(
-                    elt=func,
-                    key=Annotation.__ANNOTATIONS_KEY__,
-                    ctx=ctx
+                    elt=target, key=Annotation.__ANNOTATIONS_KEY__, ctx=ctx
                 )
-                if not annotations_by_ctx:
+
+            except TypeError:
+                annotations_by_ctx = {}
+
+            if not annotations_by_ctx:
+                if ismethod(target):
+                    func = get_method_function(target)
                     annotations_by_ctx = get_property(
-                        elt=func, key=Annotation.__ANNOTATIONS_KEY__
+                        elt=func,
+                        key=Annotation.__ANNOTATIONS_KEY__,
+                        ctx=ctx
                     )
-            elif isfunction(target):
-                annotations_by_ctx = get_property(
-                    elt=target,
-                    key=Annotation.__ANNOTATIONS_KEY__
-                )
+                    if not annotations_by_ctx:
+                        annotations_by_ctx = get_property(
+                            elt=func, key=Annotation.__ANNOTATIONS_KEY__
+                        )
+                elif isfunction(target):
+                    annotations_by_ctx = get_property(
+                        elt=target,
+                        key=Annotation.__ANNOTATIONS_KEY__
+                    )
 
-        exclude = () if exclude is None else exclude
+            exclude = () if exclude is None else exclude
 
-        for elt, annotations in annotations_by_ctx:
+            for elt, annotations in annotations_by_ctx:
 
-            for annotation in annotations:
+                for annotation in annotations:
 
-                # check if annotation is a StopPropagation rule
-                if isinstance(annotation, StopPropagation):
-                    exclude += annotation.annotation_types
+                    # check if annotation is a StopPropagation rule
+                    if isinstance(annotation, StopPropagation):
+                        exclude += annotation.annotation_types
 
-                # ensure propagation
-                if elt is not target and not annotation.propagate:
-                    continue
+                    # ensure propagation
+                    if elt is not target and not annotation.propagate:
+                        continue
 
-                # ensure overriding
-                if annotation.override:
-                    exclude += (annotation.__class__, )
+                    # ensure overriding
+                    if annotation.override:
+                        exclude += (annotation.__class__, )
 
-                # check for annotation
-                if (isinstance(annotation, cls)
-                        and not isinstance(annotation, exclude)
-                        and select(target, ctx, annotation)):
+                    # check for annotation
+                    if (isinstance(annotation, cls)
+                            and not isinstance(annotation, exclude)
+                            and select(target, ctx, annotation)):
 
-                    result.append(annotation)
+                        result.append(annotation)
 
-        if depth > 1 and (result or not followannotated):
+        if mindepth >= 0 or (maxdepth > 0 and (result or not followannotated)):
 
             if _history is None:
                 _history = [target]
@@ -610,8 +614,8 @@ class Annotation(object):
 
                     result += cls.get_annotations(
                         target=member, exclude=exclude, ctx=ctx, select=select,
-                        depth=depth-1, followannotated=followannotated,
-                        _history=_history
+                        mindepth=mindepth - 1, maxdepth=maxdepth - 1,
+                        followannotated=followannotated, _history=_history
                     )
 
         return result

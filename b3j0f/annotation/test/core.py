@@ -597,7 +597,7 @@ class GetAnnotationsTest(AnnotationTest):
             def test1(self):
                 pass
 
-        _annotations = Annotation.get_annotations(Test0, depth=5)
+        _annotations = Annotation.get_annotations(Test0, maxdepth=5)
 
         self.assertEqual(len(_annotations), 5)
         self.assertNotIn(annotation3, _annotations)
@@ -633,11 +633,158 @@ class GetAnnotationsTest(AnnotationTest):
                 pass
 
         _annotations = Annotation.get_annotations(
-            Test0, depth=5, followannotated=False
+            Test0, maxdepth=5, followannotated=False
         )
 
         self.assertEqual(len(_annotations), 6)
         self.assertIn(annotation3, _annotations)
+
+    def test_depthsearch_mindepth(self):
+
+        annotations = [Annotation() for _ in range(4)]
+        annotation0 = annotations[0]
+        annotation1 = annotations[1]
+        annotation2 = annotations[2]
+        annotation3 = annotations[3]
+
+        @annotation0
+        class Test0(object):
+
+            @annotation0
+            @annotation1
+            class Test1(object):
+
+                class Test(object):
+
+                    @annotation3
+                    def test(self):
+                        pass
+
+                @annotation2
+                class Test2(object):
+
+                    pass
+
+            @annotation1
+            def test1(self):
+                pass
+
+        _annotations = Annotation.get_annotations(
+            Test0, mindepth=1, maxdepth=5
+        )
+
+        self.assertEqual(len(_annotations), 4)
+        self.assertNotIn(annotation3, _annotations)
+
+    def test_depthsearchnotfollowannotated_mindepth(self):
+
+        annotations = [Annotation() for _ in range(4)]
+        annotation0 = annotations[0]
+        annotation1 = annotations[1]
+        annotation2 = annotations[2]
+        annotation3 = annotations[3]
+
+        @annotation0
+        class Test0(object):
+
+            @annotation0
+            @annotation1
+            class Test1(object):
+
+                class Test(object):
+
+                    @annotation3
+                    def test(self):
+                        pass
+
+                @annotation2
+                class Test2(object):
+
+                    pass
+
+            @annotation1
+            def test1(self):
+                pass
+
+        _annotations = Annotation.get_annotations(
+            Test0, mindepth=1, maxdepth=5, followannotated=False
+        )
+
+        self.assertEqual(len(_annotations), 5)
+        self.assertIn(annotation3, _annotations)
+
+    def test_depthsearch_public(self):
+
+        annotations = [Annotation() for _ in range(4)]
+        annotation0 = annotations[0]
+        annotation1 = annotations[1]
+        annotation2 = annotations[2]
+        annotation3 = annotations[3]
+
+        @annotation0
+        class Test0(object):
+
+            @annotation0
+            @annotation1
+            class _Test1(object):
+
+                class Test(object):
+
+                    @annotation3
+                    def test(self):
+                        pass
+
+                @annotation2
+                class Test2(object):
+
+                    pass
+
+            @annotation1
+            def test1(self):
+                pass
+
+        _annotations = Annotation.get_annotations(Test0, maxdepth=5)
+
+        self.assertEqual(len(_annotations), 2)
+        self.assertNotIn(annotation2, _annotations)
+        self.assertNotIn(annotation3, _annotations)
+
+    def test_depthsearch_notpublic(self):
+
+        annotations = [Annotation() for _ in range(4)]
+        annotation0 = annotations[0]
+        annotation1 = annotations[1]
+        annotation2 = annotations[2]
+        annotation3 = annotations[3]
+
+        @annotation0
+        class Test0(object):
+
+            @annotation0
+            @annotation1
+            class _Test1(object):
+
+                class Test(object):
+
+                    @annotation3
+                    def test(self):
+                        pass
+
+                @annotation2
+                class Test2(object):
+
+                    pass
+
+            @annotation1
+            def test1(self):
+                pass
+
+        _annotations = Annotation.get_annotations(
+            Test0, maxdepth=5, public=False
+        )
+
+        self.assertEqual(len(_annotations), 5)
+        self.assertNotIn(annotation3, _annotations)
 
 
 class GetLocalAnnotationsTest(AnnotationTest):
